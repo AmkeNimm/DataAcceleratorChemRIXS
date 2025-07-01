@@ -16,10 +16,7 @@ from scipy.stats import binned_statistic
 from scipy import ndimage
 
 class chemRIXSdat:
-
-    def __init__(self, exp, run,run_dark, acq,exp_c):
-
-        """
+            """
         initialises the chemRIXSdat class 
         
         Providing basic information on experiment
@@ -43,6 +40,10 @@ class chemRIXSdat:
              class containing raw and processed data
             
         """
+
+    def __init__(self, exp, run,run_dark, acq,exp_c):
+
+
         
         self.exp = exp
         self.run = run
