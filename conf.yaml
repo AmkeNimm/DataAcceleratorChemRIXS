@@ -1,0 +1,12 @@
+name: dachemrixs
+channels:
+  - conda-forge
+dependencies:
+  - dask
+  - h5py
+  - jupyter
+  - matplotlib
+  - numpy
+  - psutil
+  - python>=3.11
+  - scipy
