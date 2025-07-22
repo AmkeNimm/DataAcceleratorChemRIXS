@@ -10,9 +10,9 @@ import numpy as np
 
 
 
-class HDF5Handling:
+class SmallData:
     """
-    A base class for fast read-only interface to our HDF5 file metadata.
+    A  class for fast read-only interface to our small data files.
 
     This class is just a really thin wrapper over our HDF5 files that makes it easier
     to read in parts of the data at a time. This makes it much faster to perform
@@ -47,21 +47,15 @@ class HDF5Handling:
 
 
     
-    _defaults = {}
-    _string_attrs = frozenset({"xx"})
-    _int_attrs = frozenset({"andor_dir","andor_vls","axis_svls","timestamp"})
-    _ssdat_attrs = frozenset({"crix_w8","rix_fim0","rix_fim1","timing"})
-    _float_attrs = frozenset({})
-    _bool_attrs = frozenset({})
-
     def __init__(self, path: str | Path | h5py.File | h5py.Group):
         self.__file = None
 
         self.path = Path(path.filename).resolve()
         self.__file= path
-        self.__ssdat = path["/"]
-        self.__intgrp = path["/intg"]
+        self.__ssgrp = self.__file["/"]
+        self.__intgrp = self.__file["/intg"]
 
+     
     def is_open(self) -> bool:
         """Whether the file is open."""
         return bool(self.__file)
@@ -74,14 +68,14 @@ class HDF5Handling:
     def close(self):
         """Close the file."""
         self.__intgrp = None
-        self.__ssgrp = None
+        self.__ssdat = None
 
         # need to refresh these
         with contextlib.suppress(AttributeError):
-            del self.ssdat
+            del self.__ssdat
 
         with contextlib.suppress(AttributeError):
-            del self.datagrp
+            del self.__intgrp
 
         if self.__file:
             self.__file.close()
@@ -95,24 +89,71 @@ class HDF5Handling:
             self.__ssdat = self.__file["/"]
 
 
-    
-    @cached_property
+    @property
     def intgrp(self) -> h5py.Group:
         """Get the integrated detector group."""
+        print('accessing intgrp')
         if not self.__file:
             self.open()
-        return self.__intgrp
-
-    @cached_property
+        return Integrating(self.__intgrp)
+    
     def ssgrp(self) -> h5py.Group:
         """Get the single shot data."""
         ssdat = {}
-        if not self.__file:
+        if not self.file:
             self.open()
-        for name in self._ssdat_attrs:
-            if name in self.__file:
+        self.ssdat = Singelshot(self.__ssgrp)
+
+    
+class Integrating():
+
+    def __init__(self, intgrp: h5py.Group):
+        print('initialising Integrating')
+        grp = intgrp
+        self.andor_dir = Detector(grp["andor_dir"], ['crix_w8_sum_ptrigCount','det_crix_w8_sum_full_area'])
+        print(f'{self.andor_dir}')
+
+class Singleshot():
+
+    def __init__(self, ssgrp: h5py.Group):
+        self.grp = ssgrp
+
+        '''for name in self._ssdat_attrs:
+            if name in self.file:
                 print(name)
-                ssdat[name] = self.__file[name]
-        return ssdat
+                ssdat[name] = self.file[name]
+        '''
+
+
+class Detector():
+
+    def __init__(self, group: h5py.Group, data_to_read: list[str]):
+        print('initialising detector')
+        #group = first level grou, e.g. andordir, data_to_read: lower level data in andor_dir
+        self.grp = group
+        #self.prop_factory(data_to_read)
+        
+    '''
+        def prop_set(self, data_set):
+            print(f'geting {data_set}')
+            print(f'geting {self.grp[data_set]}')
+            return self.grp[data_set]
+
+
+        def prop_factory(self, data_to_read: list[str]): #function that makes funtions
+            print('setting up properties')
+            for dataset in data_to_read:          
+        #        setattr(self.__class__, dataset, cached_property(self.prop_set(dataset)))
+                prop=cached_property(self.prop_set(dataset))
+                setattr(self.__class__, dataset,prop)
+                prop.__set_name__(self.__class__, dataset)
+    '''
+
+    @cached_property
+    def get_crixw8(self):
+        return self.grp['crix_w8_sum_ptrigCount']
     
     
+    @cached_property
+    def get_crixw8(self):
+        return self.grp['crix_w8_sum_ptrigCount']
