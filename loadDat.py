@@ -54,7 +54,7 @@ class SmallData:
         self.__file= path
         self.__ssgrp = self.__file["/"]
         self.__intgrp = self.__file["/intg"]
-        self.scanvar = self.runinfo() 
+        #self.scanvar = self.runinfo
 
      
     def is_open(self) -> bool:
@@ -91,14 +91,18 @@ class SmallData:
 
     @property
     def runinfo(self):
+
+        if not self.__file:
+            self.open()
+        print(self.__file.keys())
         try:
             if 'scan' in self.__file.keys():
                 if 'mono_ev' in self.__file['/scan'].keys():
-                    self.scanvar = 'mono'
+                    scanvar = 'mono'
                 elif 'mono_ev' in self.__file['/scan'].keys():
-                    self.scanvar = 'delay'
+                    scanvar = 'delay'
             else:
-                self.scanvar='static'
+                scanvar='static'
                 print('did not record scan variable. If this should be a delay or mono scan the scanvars may have changed')
         except:
             print('trouble determining scan variable')
