@@ -54,6 +54,7 @@ class SmallData:
         self.__file= path
         self.__ssgrp = self.__file["/"]
         self.__intgrp = self.__file["/intg"]
+        self.scanvar = self.runinfo() 
 
      
     def is_open(self) -> bool:
@@ -88,6 +89,25 @@ class SmallData:
             self.__intgrp = self.__file["/intg"]
             self.__ssdat = self.__file["/"]
 
+    @property
+    def runinfo(self):
+        try:
+            if 'scan' in self.__file.keys():
+                if 'mono_ev' in self.__file['/scan'].keys():
+                    self.scanvar = 'mono'
+                elif 'mono_ev' in self.__file['/scan'].keys():
+                    self.scanvar = 'delay'
+            else:
+                self.scanvar='static'
+                print('did not record scan variable. If this should be a delay or mono scan the scanvars may have changed')
+        except:
+            print('trouble determining scan variable')
+        
+        '''
+        need to find a way to distinguish between fly and step scans here, maybe it's also okay to do that later
+        '''
+
+        return scanvar
 
     @property
     def intgrp(self) -> h5py.Group:
@@ -97,38 +117,49 @@ class SmallData:
             self.open()
         return Integrating(self.__intgrp)
     
+    @property
     def ssgrp(self) -> h5py.Group:
         """Get the single shot data."""
-        ssdat = {}
-        if not self.file:
+        print('accessing SSdat')
+        if not self.__file:
             self.open()
-        self.ssdat = Singelshot(self.__ssgrp)
+        return Singleshot(self.__ssgrp)
 
     
 class Integrating():
 
+    '''
+    Class for accessing all data related to 
+    '''
+
     def __init__(self, intgrp: h5py.Group):
         print('initialising Integrating')
         grp = intgrp
-        self.andor_dir = Detector(grp["andor_dir"], ['crix_w8_sum_ptrigCount','det_crix_w8_sum_full_area'])
-        print(f'{self.andor_dir}')
+        try:
+            self.andor_dir = Detector(grp["andor_dir"], ['crix_w8_sum_ptrigCount','det_crix_w8_sum_full_area'])
+        except:
+            print(f'Andor_dir not in data')
+        try:
+            self.andor_vls = Detector(grp["andor_vls"], ['crix_w8_sum_ptrigCount','det_crix_w8_sum_full_area'])
+        except:
+            print(f'Andor_VLS not in data')
+        try:
+            self.axis_svls = Detector(grp["axis_svls"], ['crix_w8_sum_ptrigCount','det_crix_w8_sum_full_area'])
+        except:
+            print(f'Andor_dir not in data')
 
 class Singleshot():
 
     def __init__(self, ssgrp: h5py.Group):
         self.grp = ssgrp
 
-        '''for name in self._ssdat_attrs:
-            if name in self.file:
-                print(name)
-                ssdat[name] = self.file[name]
-        '''
+        
 
 
 class Detector():
 
     def __init__(self, group: h5py.Group, data_to_read: list[str]):
-        print('initialising detector')
+        print(f'initialising {group}')
         #group = first level grou, e.g. andordir, data_to_read: lower level data in andor_dir
         self.grp = group
         #self.prop_factory(data_to_read)
@@ -148,12 +179,96 @@ class Detector():
                 setattr(self.__class__, dataset,prop)
                 prop.__set_name__(self.__class__, dataset)
     '''
+ 
+    @cached_property
+    def count(self):
+        try:
+            return self.grp['count']
+        except:
+            print('could not load count')
 
     @cached_property
-    def get_crixw8(self):
-        return self.grp['crix_w8_sum_ptrigCount']
-    
-    
+    def full_area(self):
+        try:
+            return self.grp['full_area']
+        except:
+            print('could not load full_area')
     @cached_property
-    def get_crixw8(self):
-        return self.grp['crix_w8_sum_ptrigCount']
+    def timing_sum_eventcodes(self):
+        try:
+            return self.grp['timing_sum_eventcodes']
+        except:
+            print('could not load timing_sum_eventcodes') 
+    @cached_property
+    def fim0(self):
+        try:
+            return self.grp['det_rix_fim0_sum_full_area']
+        except:
+            print('could not load det_rix_fim0_sum_full_area')
+    @cached_property
+    def fim1(self):
+        try:
+            return self.grp['det_rix_fim1_sum_full_area']
+        except:
+            print('could not load det_rix_fim1_sum_full_area')
+    @cached_property
+    def apd(self):
+        try:
+            return self.grp['det_crix_w8_sum_full_area']
+        except:
+            print('could not load det_crix_w8_sum_full_area')
+    @cached_property
+    def mono_hrencoder(self):
+        try:
+            return self.grp['mono_hrencoder_sum_value']
+        except:
+            print('could not load mono_hrencoder_sum_value')
+    @cached_property
+    def piranha(self):
+        try:
+            return self.grp['c_piranha_sum_full_area']
+        except:
+            print('could not load c_piranha_sum_full_area')
+
+    def process(self):
+        '''
+        Overall function to process incoming data, this includes filtering 
+        on I0 and mismatches in data
+        
+        Parameters
+        ----------
+        rois : dictionary
+            Containing ROIs for different detectors.
+        
+
+        Notes
+        -----
+        To check if a particular attribute is available, use ``hasattr(obj, attr)``.
+        Many attributes will not show up dynamically in an interpreter, because they are
+        gotten dynamically from the file.
+        
+        '''
+        roi_file = '/roi_config.txt'
+        if ~hasattr(self, 'rois'):
+            get_rois(roi_file)
+
+        self.apds = process_apds(self.apd,self.rois)
+        self.I0 = process_I0()
+
+    
+
+    def subtract_bg(self, run_bg):
+
+        return self.bgf
+
+def process_apds(raw_apd,rois):
+
+    return self.apds
+
+def process_I0(raw_fim0,raw_fim1,rois):
+    
+    return self.I0
+
+
+
+            
