@@ -7,7 +7,9 @@ from pathlib import Path
 
 import h5py
 import numpy as np
-
+import yaml
+from Singleshot import *
+from Integrating import *
 
 
 class SmallData:
@@ -54,6 +56,12 @@ class SmallData:
         self.__file= path
         self.__ssgrp = self.__file["/"]
         self.__intgrp = self.__file["/intg"]
+        try:
+            with open('ROIinput.yaml', 'r') as file:
+                 self.rois = yaml.safe_load(file)
+        except:
+            print('ROIs not defined') 
+            self.rois = {}
         #self.scanvar = self.runinfo
 
      
@@ -128,36 +136,7 @@ class SmallData:
         if not self.__file:
             self.open()
         return Singleshot(self.__ssgrp)
-
-    
-class Integrating():
-
-    '''
-    Class for accessing all data related to 
-    '''
-
-    def __init__(self, intgrp: h5py.Group):
-        print('initialising Integrating')
-        grp = intgrp
-        try:
-            self.andor_dir = Detector(grp["andor_dir"], ['crix_w8_sum_ptrigCount','det_crix_w8_sum_full_area'])
-        except:
-            print(f'Andor_dir not in data')
-        try:
-            self.andor_vls = Detector(grp["andor_vls"], ['crix_w8_sum_ptrigCount','det_crix_w8_sum_full_area'])
-        except:
-            print(f'Andor_VLS not in data')
-        try:
-            self.axis_svls = Detector(grp["axis_svls"], ['crix_w8_sum_ptrigCount','det_crix_w8_sum_full_area'])
-        except:
-            print(f'Andor_dir not in data')
-
-class Singleshot():
-
-    def __init__(self, ssgrp: h5py.Group):
-        self.grp = ssgrp
-
-        
+       
 
 
 class Detector():
@@ -253,7 +232,7 @@ class Detector():
         
         '''
         roi_file = '/roi_config.txt'
-        if ~hasattr(self, 'rois'):
+        if not hasattr(self, 'rois'):
             get_rois(roi_file)
 
         self.apds = process_apds(self.apd,self.rois)
