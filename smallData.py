@@ -94,7 +94,7 @@ class SmallData:
             self.__intgrp = self.__file["/intg"]
             self.__ssgrp = self.__file["/"]
 
-    @property
+    @cached_property
     def runinfo(self):
 
         if not self.__file:

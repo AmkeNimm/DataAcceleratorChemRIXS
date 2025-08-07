@@ -1,6 +1,7 @@
 name: dachemrixs
 channels:
   - conda-forge
+  - lcls-i
 dependencies:
   - dask
   - h5py
@@ -10,3 +11,4 @@ dependencies:
   - psutil
   - python>=3.11
   - scipy
+  - psana
