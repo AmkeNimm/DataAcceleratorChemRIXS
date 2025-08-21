@@ -5,10 +5,11 @@ channels:
 dependencies:
   - dask
   - h5py
+  - ipympl
   - jupyter
   - matplotlib
   - numpy
+  - psana
   - psutil
   - python>=3.11
   - scipy
-  - psana
