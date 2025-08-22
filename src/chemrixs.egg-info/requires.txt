@@ -1,0 +1,9 @@
+dask
+h5py>=3.7
+ipympl
+jupyter
+matplotlib
+numpy>=1.23
+psutil
+python>=3.11
+scipy>=1.9

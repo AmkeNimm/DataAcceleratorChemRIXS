@@ -4,7 +4,7 @@ from pathlib import Path
 
 import h5py
 import numpy as np
-from detector import Detector
+from chemrixs.detector import Detector
 
 piranha_dict = {'full_area': 'full_area'}
 apds_dict = {'full_area': 'full_area',
@@ -31,41 +31,82 @@ detectors = {
 
 
 class Singleshot():
-    '''
-    Class that is called by the small data class to load data from the single shot detectors.
-
-    This class loads data through the Detector class as cached property -
-    That way the data is only loaded once it is actually called. This makes it much faster to perform
-    small tasks where simple metadata is required, rather than reading in the whole
-    header.
-
-    In this file the detectors to be loaded and the respective keys are being defind.
-
-    Anything that is read in is stored in memory so the second access is much faster.
-    However, the memory can be released simply by deleting the attribute (it can be
-    accessed again, and the data will be re-read).
-
-
-    Parameters:
-    -----------
-    ssgrp: h5py.Group
-        group containing the single shot data defined in the small data class
-
-    Notes:
-    ------
-    Detector and key names may need to be updated if small data structure changes
-
-
-    '''
     def __init__(self, ssgrp: h5py.Group):
+        
+        '''
+        Class that is called by the small data class to load data from the single shot detectors.
 
+        This class loads data through the Detector class as cached property -
+        That way the data is only loaded once it is actually called. This makes it much faster to perform
+        small tasks where simple metadata is required, rather than reading in the whole
+        header.
+
+        In this file the detectors to be loaded and the respective keys are being defind.
+
+        Anything that is read in is stored in memory so the second access is much faster.
+        However, the memory can be released simply by deleting the attribute (it can be
+        accessed again, and the data will be re-read).
+
+
+        Parameters:
+        -----------
+        ssgrp: h5py.Group
+            group containing the single shot data defined in the small data class
+
+        Notes:
+        ------
+        TODO: detectors and keys should be moved to yaml file, then loaded here
+        Detector and key names may need to be updated if small data structure changes
+
+        '''
         for detector in detectors:
             if detector in ssgrp.keys():
                 detobj = type(detectors[detector]["clsname"], (Detector,), {})
                 setattr(self, detector, detobj(ssgrp[detector], detectors[detector]['attrdict'],useDask=detectors[detector]['useDask'],chunks=detectors[detector]['chunks']))
 
     def __getattr__(self, name):
+        '''
+        Function to print warning in case detector is not in h5 file.
+
+        This function is only called if a specific detector is called but not loaded throught the above init.
+        Therefore, if this function is called it means, the detector is not in the h5 file and the error message is printed
+        without stopping the entire script.
+
+        Parameters:
+        -----------
+        name: str
+            key for detector
+        '''
         print(name)
         if name in detectors:
             raise KeyError('{name} is not in this file')
         return super().__getattribute__(name)
+    
+
+    def process(self):
+        '''
+        Overall function to process incoming data, this includes filtering 
+        on I0 and mismatches in data
+        
+        Parameters
+        ----------
+        rois : dictionary
+            Containing ROIs for different detectors.
+        
+
+        Notes
+        -----
+        To check if a particular attribute is available, use ``hasattr(obj, attr)``.
+        Many attributes will not show up dynamically in an interpreter, because they are
+        gotten dynamically from the file.
+        
+        '''
+
+        self.apds = process_apds(self.apd,self.rois)
+        self.I0 = process_I0()
+
+    
+
+    def subtract_bg(self, run_bg):
+
+        return self.bgf

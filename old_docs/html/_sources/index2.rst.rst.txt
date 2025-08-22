@@ -1,5 +1,5 @@
 .. chemrixs documentation master file, created by
-   sphinx-quickstart on Fri Aug 22 12:36:03 2025.
+   sphinx-quickstart on Fri Aug 22 12:20:00 2025.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
@@ -12,17 +12,6 @@ documentation for details.
 
 
 .. toctree::
+   :maxdepth: 2
    :caption: Contents:
-
-.. note::
-   This project is under active development.
-
-.. autoclass:: smalldata.SmallData:
-   :special-members: __init__
-   :members: is_open
-   :members: close
-   :members: open
-   :members: runinfo
-   :members: integrating
-   :members: singleshot
 

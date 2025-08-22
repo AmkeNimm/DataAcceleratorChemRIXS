@@ -3,7 +3,7 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-from chemrixs.smalldata import SmallData
+from smallData import SmallData
 
 class Pedestal():
 

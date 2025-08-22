@@ -5,7 +5,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 import yaml
-from chemrixs.detector import Detector
+from detector import Detector
 
 andor_dir_dict = {
     'count': 'count',

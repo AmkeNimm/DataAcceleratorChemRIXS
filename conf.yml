@@ -13,3 +13,4 @@ dependencies:
   - psutil
   - python>=3.11
   - scipy
+  - sphinx
