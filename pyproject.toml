@@ -41,5 +41,5 @@ classifiers = [
 
 [project.urls]
 Repository = "https://github.com/AmkeNimm/DataAcceleratorChemRIXS"
-Documentation = "https://github.com/AmkeNimm/DataAcceleratorChemRIXS"
+Documentation = "https://github.com/AmkeNimm/DataAcceleratorChemRIXS/docs"
 

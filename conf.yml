@@ -12,5 +12,6 @@ dependencies:
   - psana
   - psutil
   - python>=3.11
+  - pyyaml
   - scipy
   - sphinx

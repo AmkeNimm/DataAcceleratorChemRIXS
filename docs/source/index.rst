@@ -11,18 +11,13 @@ Add your content using ``reStructuredText`` syntax. See the
 documentation for details.
 
 
-.. toctree::
-   :caption: Contents:
-
 .. note::
    This project is under active development.
 
-.. autoclass:: smalldata.SmallData:
-   :special-members: __init__
-   :members: is_open
-   :members: close
-   :members: open
-   :members: runinfo
-   :members: integrating
-   :members: singleshot
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+   
+   smalldata
+
 

@@ -12,44 +12,43 @@ from chemrixs.integrating import Integrating
 import contextlib
 
 class SmallData:
-    
+    """
+    A  class for fast read-only interface to our small data files.
+
+    This class is just a really thin wrapper over our HDF5 files that makes it easier
+    to read in parts of the data at a time. This makes it much faster to perform
+    small tasks where simple metadata is required, rather than reading in the whole
+    header.
+
+    All data is available as attributes, through ``__getattr__`` magic. Thus,
+    accessing eg. `xx`` will go and get the xx directly from the
+    file, and store them in memory.
+
+    Anything that is read in is stored in memory so the second access is much faster.
+    However, the memory can be released simply by deleting the attribute (it can be
+    accessed again, and the data will be re-read).
+
+    Parameters
+    ----------
+    path : str or Path
+        The filename to read from.
+
+    Notes
+    -----
+    To check if a particular attribute is available, use ``hasattr(obj, attr)``.
+    Many attributes will not show up dynamically in an interpreter, because they are
+    gotten dynamically from the file.
+
+    TODO: add more error messages for potential failures
+    """
+
     def __init__(self, path: str | Path | h5py.File | h5py.Group):
-
-        '''
-        A  class for fast read-only interface to our small data files.
-
-        This class is just a really thin wrapper over our HDF5 files that makes it easier
-        to read in parts of the data at a time. This makes it much faster to perform
-        small tasks where simple metadata is required, rather than reading in the whole
-        header.
-
-        All data is available as attributes, through ``__getattr__`` magic. Thus,
-        accessing eg. `xx`` will go and get the xx directly from the
-        file, and store them in memory.
-
-        Anything that is read in is stored in memory so the second access is much faster.
-        However, the memory can be released simply by deleting the attribute (it can be
-        accessed again, and the data will be re-read).
-
-        Parameters
-        ----------
-        path : str or Path
-            The filename to read from.
-
-        Notes
-        -----
-        To check if a particular attribute is available, use ``hasattr(obj, attr)``.
-        Many attributes will not show up dynamically in an interpreter, because they are
-        gotten dynamically from the file.
-
-        TODO: add more error messages for potential failures
-        '''
         self.__file = None
 
         self.path = Path(path.filename).resolve()
         self.__file= path
         try:
-            with open('roi_input.yml', 'r') as file:
+            with open('../roi_input.yml', 'r') as file:
                  self.rois = yaml.safe_load(file)
         except:
             print('ROIs not defined - or check filename') 
@@ -57,22 +56,22 @@ class SmallData:
 
      
     def is_open(self) -> bool:
-        '''
+        """
         Function to check whether the file is open.
-        '''
+        """
         return bool(self.__file)
 
     def __del__(self):
-        '''
+        """
         Function to close the file when the object is deleted.
-        '''
+        """
         if self.__file:
             self.__file.close()
 
     def close(self):
-        '''
+        """
         Function to close the file.
-        '''
+        """
         self.__intgrp = None
         self.__ssgrp = None
 
@@ -88,9 +87,9 @@ class SmallData:
         self.__file = None
 
     def open(self):  
-        '''
+        """
         Open the file.
-        '''
+        """
         if not self.__file:
             self.__file = h5py.File(self.path, "r")
             self.__intgrp = self.__file["/intg"]
@@ -98,11 +97,11 @@ class SmallData:
 
     @cached_property
     def runinfo(self):
-        '''
+        """
         Function to determine the type of run that is being analysed.
 
 
-        '''
+        """
         if not self.__file:
             self.open()
         print(self.__file.keys())
@@ -118,31 +117,31 @@ class SmallData:
         except:
             print('trouble determining scan variable')
         
-        '''
+        """
         need to find a way to distinguish between fly and step scans here, maybe it's also okay to do that later
-        '''
+        """
 
         return scanvar
 
     @cached_property
     def integrating(self) -> h5py.Group:
-        '''
+        """
         Function to get the integrated detector group and load data into attribute.
-        '''
+        """
         print('accessing intgrp')
         if not self.__file:
             self.open()
-        return Integrating(self.__intgrp)
+        return Integrating(self.__intgrp, self.rois)
     
     @cached_property
     def singleshot(self) -> h5py.Group:
-        '''
+        """
         Function to get the single shot detector group and load data into attribute.
-        '''
+        """
         print('accessing SSdat')
         if not self.__file:
             self.open()
-        return Singleshot(self.__ssgrp)
+        return Singleshot(self.__ssgrp, self.rois)
        
 
 
