@@ -1,4 +1,4 @@
-APDs:   { channels: [7,8], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
+apd:   { channels: [7,8], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
 fim0:   { channels: [4,6], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
 fim1:   { channels: [4,6], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
 andor_vls: {roi: [0,50,100,150]}

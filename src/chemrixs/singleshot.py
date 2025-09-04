@@ -30,7 +30,11 @@ detectors = {
              'timing': {'detname': 'timing', 'attrdict': timing_dict, 'clsname': 'Timing', 'useDask': True, 'chunks':(10000)}
             }
 
-
+channels_to_integrate = {
+    'fim_0': 'fim0',
+    'fim_1': 'fim1',
+    'apds': 'apd'
+}
 
 class Singleshot():
     """
@@ -59,12 +63,13 @@ class Singleshot():
     Detector and key names may need to be updated if small data structure changes
 
     """
-    def __init__(self, ssgrp: h5py.Group, rois: dict):
-        self.rois = rois
+    def __init__(self, ssgrp: h5py.Group, fyaml: dict):
+
         for detector in detectors:
             if detector in ssgrp.keys():
                 detobj = type(detectors[detector]["clsname"], (Detector,), {})
                 setattr(self, detectors[detector]['detname'], detobj(ssgrp[detector], detectors[detector]['attrdict'],useDask=detectors[detector]['useDask'],chunks=detectors[detector]['chunks']))
+        self.summing_channels(fyaml)
 
     def __getattr__(self, name):
         """
@@ -106,10 +111,17 @@ class Singleshot():
         # with open('../roi_input.yml', 'r') as file:
         #     rois = yaml.safe_load(file)
         
-        if hasattr(self,'fim_0'):
-            self.fim0 = sum_channels(self.fim_0.preproc,self.rois['fim0'])
-        if hasattr(self,'fim_1'):
-            self.fim1 = sum_channels(self.fim_1.preproc,self.rois['fim1'])
-        if hasattr(self,'apds'):
-            self.apd = sum_channels(self.apds.preproc,self.rois['APDs'])
-        #TODO: delete processed variables from memory here?
+
+    #FIXME : how to call sum_channels function properly??
+    def summing_channels(self,fyaml):
+        sum_channels(self, channels_to_integrate, fyaml)
+        #'clearing cache'
+        for channel in channels_to_integrate:
+            delattr(self,channel)
+        # if hasattr(self,'fim_0'):
+        #     self.fim0 = sum_channels(self.fim_0.preproc,self.rois['fim0'])
+        # if hasattr(self,'fim_1'):
+        #     self.fim1 = sum_channels(self.fim_1.preproc,self.rois['fim1'])
+        # if hasattr(self,'apds'):
+        #     self.apd = sum_channels(self.apds.preproc,self.rois['APDs'])
+        # #TODO: delete processed variables from memory here?

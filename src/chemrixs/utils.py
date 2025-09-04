@@ -4,7 +4,7 @@ import numpy as np
 
 #TODO: is this for loop the most efficient way - probably yes, since ROIs 
 # may be channel dependent ; confirm channel numbers match
-def sum_channels(raw_fims,rois):
+def sumchan_helper(raw_fims,rois):
     if raw_fims.ndim == 3:    
         bg = np.mean(raw_fims[...,rois['bg_roi'][0]:rois['bg_roi'][1]],axis= -1)
         bgf = raw_fims - bg[...,np.newaxis]
@@ -25,3 +25,18 @@ def sum_channels(raw_fims,rois):
         fimsum = raw_fims
 
     return fimsum
+def sum_channels(obj, channel_dict,fyaml): #dict includes {fim0: fim_0,....}
+   
+    rois = fyaml
+    
+    for key in channel_dict: 
+        #if we are parsing from the integrating class this is an array
+        if hasattr(getattr(obj,key), "__len__"):
+            summed = sumchan_helper(getattr(obj,key), rois[channel_dict[key]]) 
+            setattr(obj, channel_dict[key], summed)
+        #if we are parsing from the singleshot class this is an object
+        
+        #FIXME: implement option for getting channels from preproc or full area
+        else:
+            summed = sumchan_helper(getattr(getattr(obj,key),'preproc'),rois[channel_dict[key]]) 
+            setattr(obj, channel_dict[key], summed)

@@ -42,17 +42,16 @@ class SmallData:
     TODO: add more error messages for potential failures
     """
 
-    def __init__(self, path: str | Path | h5py.File | h5py.Group):
+    def __init__(self, path: str | Path | h5py.File | h5py.Group, fyaml: str | Path):
         self.__file = None
 
         self.path = Path(path.filename).resolve()
         self.__file= path
         try:
-            with open('../roi_input.yml', 'r') as file:
-                 self.rois = yaml.safe_load(file)
-        except:
-            print('ROIs not defined - or check filename') 
-            self.rois = {}
+            with open(fyaml, 'r') as file:
+                 self.yaml = yaml.safe_load(file)
+        except FileNotFoundError as fe: 
+            raise FileNotFoundError('Config yaml file not found - check filename') from fe
 
      
     def is_open(self) -> bool:
@@ -131,7 +130,7 @@ class SmallData:
         print('accessing intgrp')
         if not self.__file:
             self.open()
-        return Integrating(self.__intgrp, self.rois)
+        return Integrating(self.__intgrp, self.yaml)
     
     @cached_property
     def singleshot(self) -> h5py.Group:
@@ -141,7 +140,7 @@ class SmallData:
         print('accessing SSdat')
         if not self.__file:
             self.open()
-        return Singleshot(self.__ssgrp, self.rois)
+        return Singleshot(self.__ssgrp, self.yaml)
        
 
 

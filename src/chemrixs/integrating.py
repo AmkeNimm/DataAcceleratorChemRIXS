@@ -6,6 +6,7 @@ import h5py
 import numpy as np
 import yaml
 from chemrixs.detector import Detector
+from chemrixs.utils import *
 
 andor_dir_dict = {
     'count': 'count',
@@ -17,18 +18,19 @@ andor_dir_dict = {
     'mono_encoder': 'mono_hrencoder_sum_value',
     'piranha': 'c_piranha_sum_full_area'}
 andor_vls_dict = andor_dir_dict # assuming both detectors have the same keys
-
-axis_svls_dict = {
-    'count': 'count',
-    'full_area': 'full_area',
-}
+axis_svls_dict = andor_dir_dict
 
 detectors = {
-    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
+#    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
     'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':()},
     'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks':()},
 }
 
+channels_to_integrate = {
+    'fim_0': 'fim0',
+    'fim_1': 'fim1',
+    'apds': 'apd'
+}
 
 
 class Integrating():
@@ -61,17 +63,27 @@ class Integrating():
 
     """
 
-    def __init__(self, intgrp: h5py.Group):
+    def __init__(self, intgrp: h5py.Group, fyaml: dict):
         for detector in detectors:
             if detector in intgrp.keys():
                 #Creating a different class for each detector to avoid printing of attributes on all of them
                 detobj = type(detectors[detector]["clsname"], (Detector,), {})
                 #Create an attribute for each detector which will in turn will have attributes for the keys specified in the dictionary
                 setattr(self, detector, detobj(intgrp[detector], detectors[detector]['attrdict'],useDask=detectors[detector]['useDask'],chunks=detectors[detector]['chunks']))
+        #FIXME
+        self.summing_channels(fyaml)
 
     def __getattr__(self, name):
         #This will create an error if detector is not in the small data file
         if name in detectors:
-            raise KeyError('{name} is not in this file')
+            raise KeyError(f'{name} is not in this file')
         return super().__getattribute__(name)
+    #FIXME
     
+    def summing_channels(self,fyaml):
+
+        for detector in detectors: 
+            sum_channels(getattr(self,detector), channels_to_integrate, fyaml)
+            #'clearing cache'
+            for channel in channels_to_integrate:
+                delattr(getattr(self, detector),channel)
