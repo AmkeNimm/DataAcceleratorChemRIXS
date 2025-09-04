@@ -1,6 +1,70 @@
+#Defining ROIs for the different detectors
 apd:   { channels: [7,8], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
 fim0:   { channels: [4,6], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
 fim1:   { channels: [4,6], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
 andor_vls: {roi: [0,50,100,150]}
 andor_dir: {roi: [0,50,100,150]}
 svls: {roi: [0,50,100,150]}
+
+#data that should be loaded for the different integrating detectors
+andor_dir_dict: {
+    'count': 'count',
+    'full_area': 'full_area',
+    'eventcodes': 'timing_sum_eventcodes',
+    'apds': 'det_crix_w8_sum_full_area',
+    'fim_0': 'det_rix_fim0_sum_full_area',
+    'fim_1': 'det_rix_fim1_sum_full_area',
+    'mono_encoder': 'mono_hrencoder_sum_value',
+    'piranha': 'c_piranha_sum_full_area'}
+andor_vls_dict: {
+    'count': 'count',
+    'full_area': 'full_area',
+    'eventcodes': 'timing_sum_eventcodes',
+    'apds': 'det_crix_w8_sum_full_area',
+    'fim_0': 'det_rix_fim0_sum_full_area',
+    'fim_1': 'det_rix_fim1_sum_full_area',
+    'mono_encoder': 'mono_hrencoder_sum_value',
+    'piranha': 'c_piranha_sum_full_area'}
+axis_svls_dict: {
+    'count': 'count',
+    'full_area': 'full_area',
+    'eventcodes': 'timing_sum_eventcodes',
+    'apds': 'det_crix_w8_sum_full_area',
+    'fim_0': 'det_rix_fim0_sum_full_area',
+    'fim_1': 'det_rix_fim1_sum_full_area',
+    'mono_encoder': 'mono_hrencoder_sum_value',
+    'piranha': 'c_piranha_sum_full_area'}
+piranha_dict: {'full_area': 'full_area'}
+apds_dict: {'full_area': 'full_area',
+             'preproc': 'wfintegrate'}
+fim0_dict: {'full_area': 'full_area',
+             'preproc': 'wfintegrate'} 
+fim1_dict: {'full_area': 'full_area',
+             'preproc': 'wfintegrate'} 
+lightstatus_dict: {'laser': 'laser',
+                    'xray': 'xray'}
+encoder_dict: {'mono': 'value'}
+timestamp_dict: {'timestamp': 'timestamp'}
+timing_dict: {'evtcodes': 'eventcodes',
+               'timestamp': 'timestamp'}
+
+int_detectors: {
+#    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
+    'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':()},
+    'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks':()},
+}
+ss_detectors: {
+             'c_piranha': {'detname': 'piranha', 'attrdict': piranha_dict, 'clsname': 'Piranha', 'useDask': True, 'chunks':10000},
+             'det_crix_w8': {'detname': 'apds', 'attrdict': apds_dict, 'clsname': 'APDs', 'useDask': True, 'chunks':10000},
+             'det_rix_fim0': {'detname': 'fim_0', 'attrdict': fim0_dict, 'clsname': 'FIM0', 'useDask': True, 'chunks':10000},
+             'det_rix_fim1': {'detname': 'fim_1', 'attrdict': fim1_dict, 'clsname': 'FIM1', 'useDask': True, 'chunks':10000},
+             'lightStatus': {'detname': 'light', 'attrdict': lightstatus_dict, 'clsname': 'Light', 'useDask': True, 'chunks':10000},
+             'mono_hrencoder': {'detname': 'mono_encoder', 'attrdict': encoder_dict, 'clsname': 'Mono', 'useDask': True, 'chunks':10000},
+             'timing': {'detname': 'timing', 'attrdict': timing_dict, 'clsname': 'Timing', 'useDask': True, 'chunks':10000}
+            }
+
+channels_to_integrate: {
+    'fim_0': 'fim0',
+    'fim_1': 'fim1',
+    'apds': 'apd'
+}

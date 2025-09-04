@@ -8,33 +8,33 @@ from chemrixs.detector import Detector
 import yaml
 from chemrixs.utils import *
 
-piranha_dict = {'full_area': 'full_area'}
-apds_dict = {'full_area': 'full_area',
-             'preproc': 'wfintegrate'}
-fim0_dict = apds_dict 
-fim1_dict = apds_dict 
-lightstatus_dict = {'laser': 'laser',
-                    'xray': 'xray'}
-encoder_dict = {'mono': 'value'}
-timestamp_dict = {'timestamp': 'timestamp'}
-timing_dict = {'evtcodes': 'eventcodes',
-               'timestamp': 'timestamp'}
-#TODO: somehow the detname for singleshot should be the same as for the integrating detectors
-detectors = {
-             'c_piranha': {'detname': 'piranha', 'attrdict': piranha_dict, 'clsname': 'Piranha', 'useDask': True, 'chunks':(10000)},
-             'det_crix_w8': {'detname': 'apds', 'attrdict': apds_dict, 'clsname': 'APDs', 'useDask': True, 'chunks':(10000)},
-             'det_rix_fim0': {'detname': 'fim_0', 'attrdict': fim0_dict, 'clsname': 'FIM0', 'useDask': True, 'chunks':(10000)},
-             'det_rix_fim1': {'detname': 'fim_1', 'attrdict': fim1_dict, 'clsname': 'FIM1', 'useDask': True, 'chunks':(10000)},
-             'lightStatus': {'detname': 'light', 'attrdict': lightstatus_dict, 'clsname': 'Light', 'useDask': True, 'chunks':(10000)},
-             'mono_hrencoder': {'detname': 'mono_encoder', 'attrdict': encoder_dict, 'clsname': 'Mono', 'useDask': True, 'chunks':(10000)},
-             'timing': {'detname': 'timing', 'attrdict': timing_dict, 'clsname': 'Timing', 'useDask': True, 'chunks':(10000)}
-            }
+# piranha_dict = {'full_area': 'full_area'}
+# apds_dict = {'full_area': 'full_area',
+#              'preproc': 'wfintegrate'}
+# fim0_dict = apds_dict 
+# fim1_dict = apds_dict 
+# lightstatus_dict = {'laser': 'laser',
+#                     'xray': 'xray'}
+# encoder_dict = {'mono': 'value'}
+# timestamp_dict = {'timestamp': 'timestamp'}
+# timing_dict = {'evtcodes': 'eventcodes',
+#                'timestamp': 'timestamp'}
+# #TODO: somehow the detname for singleshot should be the same as for the integrating detectors
+# detectors = {
+#              'c_piranha': {'detname': 'piranha', 'attrdict': piranha_dict, 'clsname': 'Piranha', 'useDask': True, 'chunks':(10000)},
+#              'det_crix_w8': {'detname': 'apds', 'attrdict': apds_dict, 'clsname': 'APDs', 'useDask': True, 'chunks':(10000)},
+#              'det_rix_fim0': {'detname': 'fim_0', 'attrdict': fim0_dict, 'clsname': 'FIM0', 'useDask': True, 'chunks':(10000)},
+#              'det_rix_fim1': {'detname': 'fim_1', 'attrdict': fim1_dict, 'clsname': 'FIM1', 'useDask': True, 'chunks':(10000)},
+#              'lightStatus': {'detname': 'light', 'attrdict': lightstatus_dict, 'clsname': 'Light', 'useDask': True, 'chunks':(10000)},
+#              'mono_hrencoder': {'detname': 'mono_encoder', 'attrdict': encoder_dict, 'clsname': 'Mono', 'useDask': True, 'chunks':(10000)},
+#              'timing': {'detname': 'timing', 'attrdict': timing_dict, 'clsname': 'Timing', 'useDask': True, 'chunks':(10000)}
+#             }
 
-channels_to_integrate = {
-    'fim_0': 'fim0',
-    'fim_1': 'fim1',
-    'apds': 'apd'
-}
+# channels_to_integrate = {
+#     'fim_0': 'fim0',
+#     'fim_1': 'fim1',
+#     'apds': 'apd'
+# }
 
 class Singleshot():
     """
@@ -64,12 +64,18 @@ class Singleshot():
 
     """
     def __init__(self, ssgrp: h5py.Group, fyaml: dict):
-
-        for detector in detectors:
+        self.yaml = fyaml
+        for detector in self.yaml['ss_detectors']:
             if detector in ssgrp.keys():
-                detobj = type(detectors[detector]["clsname"], (Detector,), {})
-                setattr(self, detectors[detector]['detname'], detobj(ssgrp[detector], detectors[detector]['attrdict'],useDask=detectors[detector]['useDask'],chunks=detectors[detector]['chunks']))
-        self.summing_channels(fyaml)
+                detobj = type(self.yaml['ss_detectors'][detector]["clsname"], 
+                              (Detector,), {})
+                setattr(self, 
+                        self.yaml['ss_detectors'][detector]['detname'], 
+                        detobj(ssgrp[detector], 
+                               self.yaml[self.yaml['ss_detectors'][detector]['attrdict']],
+                               useDask=self.yaml['ss_detectors'][detector]['useDask'],
+                               chunks=int(self.yaml['ss_detectors'][detector]['chunks'])))
+        self.summing_channels()
 
     def __getattr__(self, name):
         """
@@ -85,7 +91,7 @@ class Singleshot():
             key for detector
         """
         print(name)
-        if name in detectors:
+        if name in self.yaml['ss_detectors']:
             raise KeyError('{name} is not in this file')
         return super().__getattribute__(name)
     
@@ -113,10 +119,10 @@ class Singleshot():
         
 
     #FIXME : how to call sum_channels function properly??
-    def summing_channels(self,fyaml):
-        sum_channels(self, channels_to_integrate, fyaml)
+    def summing_channels(self):
+        sum_channels(self, self.yaml)
         #'clearing cache'
-        for channel in channels_to_integrate:
+        for channel in self.yaml['channels_to_integrate']:
             delattr(self,channel)
         # if hasattr(self,'fim_0'):
         #     self.fim0 = sum_channels(self.fim_0.preproc,self.rois['fim0'])

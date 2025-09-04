@@ -1,16 +1,28 @@
-import h5py
 import numpy as np
 
-
-#TODO: is this for loop the most efficient way - probably yes, since ROIs 
-# may be channel dependent ; confirm channel numbers match
 def sumchan_helper(raw_fims,rois):
+    '''
+    Function. that does the actual summing of fim and crix channels
+
+    Parameters
+    ----------
+    raw_fims : array
+        containing the actual data, either pre-processed or raw - these cases will be distinguished below
+
+    rois : array
+        describing the area containing background and the region of interest, 
+        as well as the channels that should be used for reduction.
+        Defined in the config yaml file.
+
+    '''
     if raw_fims.ndim == 3:    
         bg = np.mean(raw_fims[...,rois['bg_roi'][0]:rois['bg_roi'][1]],axis= -1)
         bgf = raw_fims - bg[...,np.newaxis]
         fim_sum = np.zeros([bgf.shape[0],len(rois['channels'])])
         print(bgf.shape)
         i=0
+        #TODO: is this for loop the most efficient way - probably yes, since ROIs 
+        # may be channel dependent ; confirm channel numbers match
         for c in rois['channels']:
             fim_sum[:,i] = np.nansum(np.abs(bgf[:,c-1,rois['roi'][i][0]:rois['roi'][i][1]]),axis = 1)
             i=i+1
@@ -25,9 +37,26 @@ def sumchan_helper(raw_fims,rois):
         fimsum = raw_fims
 
     return fimsum
-def sum_channels(obj, channel_dict,fyaml): #dict includes {fim0: fim_0,....}
-   
+
+def sum_channels(obj,fyaml): #dict includes {fim0: fim_0,....}
+    '''
+    Function to handle singleshot or integrating fims and crix 
+    
+    Different cases depending if object from singleshot or array from 
+    integrating detectors is being parsed
+
+    Parameters
+    ----------
+    obj : object
+        object containing fim or crixs data
+    channel_dict : dictionary
+        dict containing list of which detectors to process, 
+        and how the attribute should be called
+    fymal : dictionary
+        Dict from yml file that contains information of ROIs for the different detectors
+    '''
     rois = fyaml
+    channel_dict = fyaml['channels_to_integrate']
     
     for key in channel_dict: 
         #if we are parsing from the integrating class this is an array

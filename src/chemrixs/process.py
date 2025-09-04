@@ -7,8 +7,31 @@ import contextlib
 from chemrixs.utils import *
 from chemrixs.smalldata import SmallData
 
+andor_dir_dict = {
+    'count': 'count',
+    'full_area': 'full_area',
+    'eventcodes': 'timing_sum_eventcodes',
+    'apds': 'det_crix_w8_sum_full_area',
+    'fim_0': 'det_rix_fim0_sum_full_area',
+    'fim_1': 'det_rix_fim1_sum_full_area',
+    'mono_encoder': 'mono_hrencoder_sum_value',
+    'piranha': 'c_piranha_sum_full_area'}
+andor_vls_dict = andor_dir_dict # assuming both detectors have the same keys
+axis_svls_dict = andor_dir_dict
 
-class ProcessData():
+detectors = {
+#    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
+    'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':()},
+    'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks':()},
+}
+
+channels_to_integrate = {
+    'fim_0': 'fim0',
+    'fim_1': 'fim1',
+    'apds': 'apd'
+}
+
+class Reduced():
     """
     A  class for processing the incoming data.
 
@@ -29,18 +52,23 @@ class ProcessData():
     TODO: add more error messages for potential failures
     """
 
-    def __init__(self, path: str | Path | h5py.File | h5py.Group, bgpath: Path):
+    def __init__(self, path: str | Path | h5py.File | h5py.Group, fyaml: str | Path):
         
-        self.data = SmallData(path)
+        self.data = SmallData(path,fyaml)
 
-        #load BG data or process it from smalldata and save
-        if bgpath.exists():
-            #load BG
-            self.bg =  h5py.File(self.bgpath, "r")
-        else:
-            self.bg = SmallData(bgpath)
+        # #load BG data or process it from smalldata and save
+        # if bgpath.exists():
+        #     #load BG
+        #     self.bg =  h5py.File(self.bgpath, "r")
+        # else:
+        #     self.bg = SmallData(bgpath)
 
             #process BG
+        try:
+            with open(fyaml, 'r') as file:
+                 self.yaml = yaml.safe_load(file)
+        except FileNotFoundError as fe: 
+            raise FileNotFoundError('Config yaml file not found - check filename') from fe
 
         
 
@@ -48,11 +76,34 @@ class ProcessData():
         
         return 
 
-    def process_int(self):
+    # @cached_property
+    # def process_int(self):
+    #     self.summing_channelsInt(self.yaml)
     
-        return
     
-    def check_rois(self):
-        fig,ax=plt.subplots(1,1)
+    # def check_rois(self):
+    #     fig,ax=plt.subplots(1,1)
+
+    # def summing_channelsInt(self,fyaml):
+    #     '''
+    #     Function to process fim and crix detectors linked to each integrating detector.
+
+    #     Parameters
+    #     ----------
+    #     fyaml : dictionary containing the ROIs for signal and background
+    #     '''
+
+    #     for detector in detectors: 
+    #         sum_channels(getattr(self.data.integrating,detector), channels_to_integrate, fyaml)
+    #         #'clearing cache'
+    #         for channel in channels_to_integrate:
+    #             delattr(getattr(self.data.integrating, detector),channel)
+
+    # # def process_area_detector(self,fyaml):
+    # #     '''
+    # #     '''
+    # #     if 'andor_dir' in detectors:
+    # #         process_andor_
+
         
 

@@ -8,30 +8,6 @@ import yaml
 from chemrixs.detector import Detector
 from chemrixs.utils import *
 
-andor_dir_dict = {
-    'count': 'count',
-    'full_area': 'full_area',
-    'eventcodes': 'timing_sum_eventcodes',
-    'apds': 'det_crix_w8_sum_full_area',
-    'fim_0': 'det_rix_fim0_sum_full_area',
-    'fim_1': 'det_rix_fim1_sum_full_area',
-    'mono_encoder': 'mono_hrencoder_sum_value',
-    'piranha': 'c_piranha_sum_full_area'}
-andor_vls_dict = andor_dir_dict # assuming both detectors have the same keys
-axis_svls_dict = andor_dir_dict
-
-detectors = {
-#    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
-    'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':()},
-    'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks':()},
-}
-
-channels_to_integrate = {
-    'fim_0': 'fim0',
-    'fim_1': 'fim1',
-    'apds': 'apd'
-}
-
 
 class Integrating():
 
@@ -64,26 +40,53 @@ class Integrating():
     """
 
     def __init__(self, intgrp: h5py.Group, fyaml: dict):
-        for detector in detectors:
+        self.yaml = fyaml
+        for detector, det_spec_dict in self.yaml['int_detectors'].items():
             if detector in intgrp.keys():
                 #Creating a different class for each detector to avoid printing of attributes on all of them
-                detobj = type(detectors[detector]["clsname"], (Detector,), {})
+                detobj = type(det_spec_dict["clsname"], (Detector,), {})
                 #Create an attribute for each detector which will in turn will have attributes for the keys specified in the dictionary
-                setattr(self, detector, detobj(intgrp[detector], detectors[detector]['attrdict'],useDask=detectors[detector]['useDask'],chunks=detectors[detector]['chunks']))
-        #FIXME
-        self.summing_channels(fyaml)
+                setattr(
+                    self,
+                    detector,
+                    detobj(
+                        intgrp[detector],
+                        self.yaml[det_spec_dict['attrdict']],
+                        useDask=det_spec_dict['useDask'],
+                        chunks=det_spec_dict['chunks']
+                    )
+                )
+        self.summing_channels()
+        self.process_area_detectors()
 
     def __getattr__(self, name):
         #This will create an error if detector is not in the small data file
-        if name in detectors:
+        if name in self.yaml['int_detectors']:
             raise KeyError(f'{name} is not in this file')
         return super().__getattribute__(name)
-    #FIXME
     
-    def summing_channels(self,fyaml):
+    def summing_channels(self):
 
-        for detector in detectors: 
-            sum_channels(getattr(self,detector), channels_to_integrate, fyaml)
+        for detector in self.yaml['int_detectors']: 
+            sum_channels(getattr(self,detector), self.yaml)
             #'clearing cache'
-            for channel in channels_to_integrate:
+            for channel in self.yaml['channels_to_integrate']:
                 delattr(getattr(self, detector),channel)
+
+    def process_area_detectors(self):
+        #FIXME currently hardcoded the area detectors that are available. If these change, this needs to be fixed
+
+        if 'andor_dir' in self.yaml['int_detectors']:
+            #proc_andordir(self,fyaml)
+            getattr((self.andor_dir),'full_area')
+            delattr((self.andor_dir),'full_area')
+
+        if 'andor_vls' in self.yaml['int_detectors']:
+            getattr((self.andor_vls),'full_area')
+            delattr((self.andor_vls),'full_area')
+
+
+        if 'axis_vls' in self.yaml['int_detectors']:
+            getattr((self.axis_vls),'full_area')
+            delattr((self.axis_vls),'full_area')
+            
