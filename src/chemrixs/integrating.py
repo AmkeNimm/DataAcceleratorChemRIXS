@@ -57,7 +57,6 @@ class Integrating():
                     )
                 )
         self.summing_channels()
-        self.process_area_detectors()
 
     def __getattr__(self, name):
         #This will create an error if detector is not in the small data file
@@ -73,20 +72,4 @@ class Integrating():
             for channel in self.yaml['channels_to_integrate']:
                 delattr(getattr(self, detector),channel)
 
-    def process_area_detectors(self):
-        #FIXME currently hardcoded the area detectors that are available. If these change, this needs to be fixed
-
-        if 'andor_dir' in self.yaml['int_detectors']:
-            #proc_andordir(self,fyaml)
-            getattr((self.andor_dir),'full_area')
-            delattr((self.andor_dir),'full_area')
-
-        if 'andor_vls' in self.yaml['int_detectors']:
-            getattr((self.andor_vls),'full_area')
-            delattr((self.andor_vls),'full_area')
-
-
-        if 'axis_vls' in self.yaml['int_detectors']:
-            getattr((self.axis_vls),'full_area')
-            delattr((self.axis_vls),'full_area')
             

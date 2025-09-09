@@ -69,3 +69,5 @@ def sum_channels(obj,fyaml): #dict includes {fim0: fim_0,....}
         else:
             summed = sumchan_helper(getattr(getattr(obj,key),'preproc'),rois[channel_dict[key]]) 
             setattr(obj, channel_dict[key], summed)
+
+

@@ -1,3 +1,9 @@
+#If BG has been reduced, define path here:
+red_bg_path: []
+
+#expected counts per integrating frame
+expected_count: []
+
 #Defining ROIs for the different detectors
 apd:   { channels: [7,8], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
 fim0:   { channels: [4,6], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
@@ -50,8 +56,8 @@ timing_dict: {'evtcodes': 'eventcodes',
 
 int_detectors: {
 #    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
-    'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':()},
-    'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks':()},
+    'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':(), 'backgroundtype':'dark'},
+    'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks':(), 'backgroundtype':'dark'},
 }
 ss_detectors: {
              'c_piranha': {'detname': 'piranha', 'attrdict': piranha_dict, 'clsname': 'Piranha', 'useDask': True, 'chunks':10000},

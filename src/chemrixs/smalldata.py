@@ -44,9 +44,27 @@ class SmallData:
 
     def __init__(self, path: str | Path | h5py.File | h5py.Group, fyaml: str | Path):
         self.__file = None
+        # self.path = Path(path.filename).resolve()
+        # #FIXME: should I keep thsi self.__file?
+        # self.__file= path
 
-        self.path = Path(path.filename).resolve()
-        self.__file= path
+        ########
+
+        if isinstance(path, h5py.File):
+            self.path = Path(path.filename).resolve()
+            self.__file = path
+        elif isinstance(path, h5py.Group):
+            self.path = Path(path.file.filename).resolve()
+            self.__file = path.file
+        elif isinstance(path, str | Path):
+            self.path = Path(path).resolve()
+            #self.___File is not assigned here, cause the input is not an h5 file or group,
+            # so we are only loading it in self.open()
+
+        ########
+
+
+
         try:
             with open(fyaml, 'r') as file:
                  self.yaml = yaml.safe_load(file)
@@ -85,7 +103,16 @@ class SmallData:
             self.__file.close()
         self.__file = None
 
+    def __exit__(self,*exc):
+        self.close()
+
+    def __enter__(self):
+        self.open()
+        return self
+
+
     def open(self):  
+        #FIXME: need to add option for h5 file or str or path as input
         """
         Open the file.
         """
@@ -93,6 +120,10 @@ class SmallData:
             self.__file = h5py.File(self.path, "r")
             self.__intgrp = self.__file["/intg"]
             self.__ssgrp = self.__file["/"]
+        if not hasattr(self, '_SmallData__intgrp'):
+            self.__intgrp = self.__file["/intg"]
+        
+
 
     @cached_property
     def runinfo(self):

@@ -6,34 +6,13 @@ import yaml
 import contextlib
 from chemrixs.utils import *
 from chemrixs.smalldata import SmallData
-
-andor_dir_dict = {
-    'count': 'count',
-    'full_area': 'full_area',
-    'eventcodes': 'timing_sum_eventcodes',
-    'apds': 'det_crix_w8_sum_full_area',
-    'fim_0': 'det_rix_fim0_sum_full_area',
-    'fim_1': 'det_rix_fim1_sum_full_area',
-    'mono_encoder': 'mono_hrencoder_sum_value',
-    'piranha': 'c_piranha_sum_full_area'}
-andor_vls_dict = andor_dir_dict # assuming both detectors have the same keys
-axis_svls_dict = andor_dir_dict
-
-detectors = {
-#    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
-    'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':()},
-    'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks':()},
-}
-
-channels_to_integrate = {
-    'fim_0': 'fim0',
-    'fim_1': 'fim1',
-    'apds': 'apd'
-}
+import scipy.stats as st
 
 class Reduced():
     """
     A  class for processing the incoming data.
+
+    context manager magic
 
     Parameters
     ----------
@@ -52,35 +31,77 @@ class Reduced():
     TODO: add more error messages for potential failures
     """
 
-    def __init__(self, path: str | Path | h5py.File | h5py.Group, fyaml: str | Path):
-        
+    def __init__(self, path: str | Path | h5py.File, bgpath: str | Path | h5py.File, fyaml: str | Path):
+    
+        #FIXME: have reduced background saved somewhere?
+           
         self.data = SmallData(path,fyaml)
-
-        # #load BG data or process it from smalldata and save
-        # if bgpath.exists():
-        #     #load BG
-        #     self.bg =  h5py.File(self.bgpath, "r")
-        # else:
-        #     self.bg = SmallData(bgpath)
-
+        #load BG data or process it from smalldata and save
+        if len(self.data.yaml['red_bg_path']) == 0:
             #process BG
-        try:
-            with open(fyaml, 'r') as file:
-                 self.yaml = yaml.safe_load(file)
-        except FileNotFoundError as fe: 
-            raise FileNotFoundError('Config yaml file not found - check filename') from fe
+            self.bg = SmallData(bgpath,fyaml)
+            self.bg_preproc = False
+        else:
+            #load BG
+            self.bg_preproc = True
+            self.bg = None
 
+        self.process_int()
+
+        # if clear_memory == True:
+        #     self.data.close()
+        #     self.bg.close()
+               
+      
+    def is_open(self) -> bool:
+        """
+        Function to check whether the file is open.
+        """
+        if not self.bg_preproc:
+            return (self.data.is_open() & self.bg.is_open())
+        else:
+            return self.data.is_open()
+
+    def __del__(self):
+        """
+        Function to close the file when the object is deleted.
+        """
+        if self.data.is_open:
+            self.data.close()
+        if self.bg.is_open:
+            self.bg.close()
+
+    def close(self):
+        """
+        Function to close the file.
+        """
+        if self.data.is_open:
+            self.data.close()
+        if self.bg.is_open:
+            self.bg.close()
+
+    def __exit__(self,*exc):
+        self.close()
+
+    def __enter__(self):
+        self.open()
+        return self
+
+    def open(self):  
+        """
+        Open the file.
+        """
+        if not self.data.is_open(): 
+            self.data.open()
+        if not self.bg_preproc and self.bg.is_open():
+            self.bg.open()
+        else:
+            self.bg = h5py.File(self.data.yaml['red_bg_path'], "r")
+    
+    #def process_ss(self):
         
 
-    def process_ss(self):
-        
-        return 
 
-    # @cached_property
-    # def process_int(self):
-    #     self.summing_channelsInt(self.yaml)
-    
-    
     # def check_rois(self):
     #     fig,ax=plt.subplots(1,1)
 
@@ -99,11 +120,66 @@ class Reduced():
     #         for channel in channels_to_integrate:
     #             delattr(getattr(self.data.integrating, detector),channel)
 
-    # # def process_area_detector(self,fyaml):
-    # #     '''
-    # #     '''
-    # #     if 'andor_dir' in detectors:
-    # #         process_andor_
+    def process_int(self):
+        '''
+        parsing function to call the individual processing funcitons for area detectors
+        '''
 
+        #COUNTMASK
+        if len(self.data.yaml['expected_count']) == 0:
+            try:
+                expected_count = st.mode(self.data.integrating.andor_vls.count,keepdims=False)[0]
+            except:
+                expected_count = st.mode(self.data.integrating.axis_svls.count,keepdims=False)[0]
+        else:
+            expected_count = self.data.yaml['expected_count']
+            #FIXME: if the idea is to have the possibility to run integrating detectors at different rates
+            #this should be not hard coded for one detector either
+        count_mask = (self.data.integrating.andor_vls.count<expected_count+1)&(self.data.integrating.andor_vls.count>expected_count-1)
+
+
+
+
+        #FIXME currently hardcoded the area detectors that are available. If these change, this needs to be fixed
+
+        if 'andor_dir' in self.data.yaml['int_detectors']:
+            self.proc_andordir()
+
+        if 'andor_vls' in self.data.yaml['int_detectors']:
+            self.proc_andorvls()
+
+        if 'axis_vls' in self.data.yaml['int_detectors']:
+            self.proc_svls()
         
 
+    def proc_andorvls(self):
+
+
+
+        #SUBTRACT BG
+        background_type = self.data.yaml['int_detectors']['andor_vls']['backgroundtype']
+        if background_type == 'dark':
+            if self.bg_preproc == False:
+                if self.bg.integrating.andor_vls.full_area.ndim == 2:
+                    self.bg.vls = np.mean(self.bg.integrating.andor_vls.full_area[:,:],0)
+                elif self.bg.integrating.andor_vls.full_area.ndim == 3:
+                    self.bg.vls = np.mean(self.bg.integrating.andor_vls.full_area[:,:,:],0)
+            delattr(self.bg.integrating.andor_vls,'full_area')
+
+
+
+
+
+        #SUMMING
+
+
+            # if 'intg' in h5_file.keys():
+            #     andor_vls = np.array(h5_file['intg/andor_vls']['full_area'])
+            # else:
+            #     andor_vls = np.array(h5_file['andor_vls']['grp_intg_full_area'])
+        
+            # if andor_vls.ndim == 2:
+            #     vls_dark_image = np.mean(andor_vls[:,:],0)
+            # if andor_vls.ndim == 3:
+            #     vls_dark_image = np.mean(andor_vls[:,:,:],0)
+            

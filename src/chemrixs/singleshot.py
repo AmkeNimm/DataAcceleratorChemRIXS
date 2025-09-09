@@ -8,33 +8,6 @@ from chemrixs.detector import Detector
 import yaml
 from chemrixs.utils import *
 
-# piranha_dict = {'full_area': 'full_area'}
-# apds_dict = {'full_area': 'full_area',
-#              'preproc': 'wfintegrate'}
-# fim0_dict = apds_dict 
-# fim1_dict = apds_dict 
-# lightstatus_dict = {'laser': 'laser',
-#                     'xray': 'xray'}
-# encoder_dict = {'mono': 'value'}
-# timestamp_dict = {'timestamp': 'timestamp'}
-# timing_dict = {'evtcodes': 'eventcodes',
-#                'timestamp': 'timestamp'}
-# #TODO: somehow the detname for singleshot should be the same as for the integrating detectors
-# detectors = {
-#              'c_piranha': {'detname': 'piranha', 'attrdict': piranha_dict, 'clsname': 'Piranha', 'useDask': True, 'chunks':(10000)},
-#              'det_crix_w8': {'detname': 'apds', 'attrdict': apds_dict, 'clsname': 'APDs', 'useDask': True, 'chunks':(10000)},
-#              'det_rix_fim0': {'detname': 'fim_0', 'attrdict': fim0_dict, 'clsname': 'FIM0', 'useDask': True, 'chunks':(10000)},
-#              'det_rix_fim1': {'detname': 'fim_1', 'attrdict': fim1_dict, 'clsname': 'FIM1', 'useDask': True, 'chunks':(10000)},
-#              'lightStatus': {'detname': 'light', 'attrdict': lightstatus_dict, 'clsname': 'Light', 'useDask': True, 'chunks':(10000)},
-#              'mono_hrencoder': {'detname': 'mono_encoder', 'attrdict': encoder_dict, 'clsname': 'Mono', 'useDask': True, 'chunks':(10000)},
-#              'timing': {'detname': 'timing', 'attrdict': timing_dict, 'clsname': 'Timing', 'useDask': True, 'chunks':(10000)}
-#             }
-
-# channels_to_integrate = {
-#     'fim_0': 'fim0',
-#     'fim_1': 'fim1',
-#     'apds': 'apd'
-# }
 
 class Singleshot():
     """
@@ -95,39 +68,15 @@ class Singleshot():
             raise KeyError('{name} is not in this file')
         return super().__getattribute__(name)
     
-
-    def process(self):
-        """
-        Overall function to process incoming data, this includes filtering 
-        on I0 and mismatches in data
-        
-        Parameters
-        ----------
-        rois : dictionary
-            Containing ROIs for different detectors.
         
 
-        Notes
-        -----
-        To check if a particular attribute is available, use ``hasattr(obj, attr)``.
-        Many attributes will not show up dynamically in an interpreter, because they are
-        gotten dynamically from the file.
-        
-        """
-        # with open('../roi_input.yml', 'r') as file:
-        #     rois = yaml.safe_load(file)
-        
-
-    #FIXME : how to call sum_channels function properly??
     def summing_channels(self):
+        '''
+        Function to process fims and APDs, raw data cached property
+        is removed from memory after processing but can still be called
+        '''
         sum_channels(self, self.yaml)
         #'clearing cache'
         for channel in self.yaml['channels_to_integrate']:
             delattr(self,channel)
-        # if hasattr(self,'fim_0'):
-        #     self.fim0 = sum_channels(self.fim_0.preproc,self.rois['fim0'])
-        # if hasattr(self,'fim_1'):
-        #     self.fim1 = sum_channels(self.fim_1.preproc,self.rois['fim1'])
-        # if hasattr(self,'apds'):
-        #     self.apd = sum_channels(self.apds.preproc,self.rois['APDs'])
-        # #TODO: delete processed variables from memory here?
+    
