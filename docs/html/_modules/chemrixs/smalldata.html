@@ -45,10 +45,8 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
 
 <div class="viewcode-block" id="SmallData">
-<a class="viewcode-back" href="../../index.html#chemrixs.SmallData">[docs]</a>
+<a class="viewcode-back" href="../../smalldata.html#chemrixs.SmallData">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SmallData</span><span class="p">:</span>
-<span class="w">    </span>
-
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A  class for fast read-only interface to our small data files.</span>
 
@@ -70,6 +68,28 @@
 <span class="sd">    path : str or Path</span>
 <span class="sd">        The filename to read from.</span>
 
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    is_open:</span>
+
+<span class="sd">    __del__:</span>
+
+<span class="sd">    close:</span>
+
+<span class="sd">    __exit__:</span>
+
+<span class="sd">    __enter__:</span>
+
+<span class="sd">    open:</span>
+
+<span class="sd">    runinfo:</span>
+
+<span class="sd">    integrating:</span>
+
+<span class="sd">    singleshot:</span>
+
+
+
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    To check if a particular attribute is available, use ``hasattr(obj, attr)``.</span>
@@ -79,21 +99,39 @@
 <span class="sd">    TODO: add more error messages for potential failures</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span> <span class="o">|</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span> <span class="o">|</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">,</span> <span class="n">fyaml</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">scantype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__file</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scantype</span> <span class="o">=</span> <span class="n">scantype</span>
+        <span class="c1"># self.path = Path(path.filename).resolve()</span>
+        <span class="c1"># #FIXME: should I keep thsi self.__file?</span>
+        <span class="c1"># self.__file= path</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="o">=</span> <span class="n">path</span>
+        <span class="c1">########</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__file</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__file</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">file</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+            <span class="c1">#self.___File is not assigned here, cause the input is not an h5 file or group,</span>
+            <span class="c1"># so we are only loading it in self.open()</span>
+
+        <span class="c1">########</span>
+
+
+
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;roi_input.yml&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-                 <span class="bp">self</span><span class="o">.</span><span class="n">rois</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ROIs not defined - or check filename&#39;</span><span class="p">)</span> 
-            <span class="bp">self</span><span class="o">.</span><span class="n">rois</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fyaml</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">fe</span><span class="p">:</span> 
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="s1">&#39;Config yaml file not found - check filename&#39;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">fe</span>
 
      
 <div class="viewcode-block" id="SmallData.is_open">
-<a class="viewcode-back" href="../../index.html#chemrixs.SmallData.is_open">[docs]</a>
+<a class="viewcode-back" href="../../smalldata.html#chemrixs.SmallData.is_open">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_open</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Function to check whether the file is open.</span>
@@ -101,15 +139,18 @@
         <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="SmallData.__del__">
+<a class="viewcode-back" href="../../smalldata.html#chemrixs.SmallData.__del__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Function to close the file when the object is deleted.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
 
 <div class="viewcode-block" id="SmallData.close">
-<a class="viewcode-back" href="../../index.html#chemrixs.SmallData.close">[docs]</a>
+<a class="viewcode-back" href="../../smalldata.html#chemrixs.SmallData.close">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Function to close the file.</span>
@@ -129,18 +170,37 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">__file</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
+<div class="viewcode-block" id="SmallData.__exit__">
+<a class="viewcode-back" href="../../smalldata.html#chemrixs.SmallData.__exit__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">*</span><span class="n">exc</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SmallData.__enter__">
+<a class="viewcode-back" href="../../smalldata.html#chemrixs.SmallData.__enter__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+
 <div class="viewcode-block" id="SmallData.open">
-<a class="viewcode-back" href="../../index.html#chemrixs.SmallData.open">[docs]</a>
+<a class="viewcode-back" href="../../smalldata.html#chemrixs.SmallData.open">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  
+        <span class="c1">#FIXME: need to add option for h5 file or str or path as input</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Open the file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__file</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__intgrp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s2">&quot;/intg&quot;</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__ssgrp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s2">&quot;/&quot;</span><span class="p">]</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__ssgrp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s2">&quot;/&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_SmallData__intgrp&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__intgrp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s2">&quot;/intg&quot;</span><span class="p">]</span></div>
 
+        
 
+    <span class="c1">#FIXME: Unclear what the keys are now to identify scans...</span>
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">runinfo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -151,23 +211,35 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
         <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="s1">&#39;scan&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="k">if</span> <span class="s1">&#39;mono_ev&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                    <span class="n">scanvar</span> <span class="o">=</span> <span class="s1">&#39;mono&#39;</span>
-                <span class="k">elif</span> <span class="s1">&#39;mono_ev&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                    <span class="n">scanvar</span> <span class="o">=</span> <span class="s1">&#39;delay&#39;</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">scanvar</span><span class="o">=</span><span class="s1">&#39;static&#39;</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;did not record scan variable. If this should be a delay or mono scan the scanvars may have changed&#39;</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;trouble determining scan variable&#39;</span><span class="p">)</span>
-<span class="w">        </span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        need to find a way to distinguish between fly and step scans here, maybe it&#39;s also okay to do that later</span>
-<span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="n">scanvar</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scantype</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">scantype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scantype</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;scan&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;scanvar&#39;</span><span class="p">][</span><span class="s1">&#39;mono&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">scantype</span> <span class="o">=</span> <span class="s1">&#39;mono&#39;</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;scanvar&#39;</span><span class="p">][</span><span class="s1">&#39;delay&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">scantype</span> <span class="o">=</span> <span class="s1">&#39;delay&#39;</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;scanvar&#39;</span><span class="p">][</span><span class="s1">&#39;waveplate&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">scantype</span> <span class="o">=</span> <span class="s1">&#39;power&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;scanvar&#39;</span><span class="p">][</span><span class="s1">&#39;mono_fly&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">scantype</span> <span class="o">=</span> <span class="s1">&#39;mono_fly&#39;</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;scanvar&#39;</span><span class="p">][</span><span class="s1">&#39;delay_fly&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">scantype</span> <span class="o">=</span> <span class="s1">&#39;delay_fly&#39;</span>
+                    <span class="n">scantype</span><span class="o">=</span><span class="s1">&#39;static&#39;</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;did not record scan variable. If this should be a delay or mono scan the scanvars may have changed&#39;</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;trouble determining scan variable&#39;</span><span class="p">)</span>
+                <span class="n">scantype</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="w">        </span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                need to find a way to distinguish between fly and step scans here, maybe it&#39;s also okay to do that later</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">scantype</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">integrating</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">:</span>
@@ -177,7 +249,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;accessing intgrp&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">Integrating</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__intgrp</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Integrating</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__intgrp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">scantype</span><span class="p">)</span>
     
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">singleshot</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">:</span>
@@ -187,7 +259,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;accessing SSdat&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">Singleshot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__ssgrp</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">Singleshot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__ssgrp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">)</span></div>
 
        
 
@@ -219,6 +291,11 @@
     </div>
 </search>
 <script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../smalldata.html">SmallData</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../process.html">SmallData</a></li>
+</ul>
 
 <div class="relations">
 <h3>Related Topics</h3>

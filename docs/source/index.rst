@@ -19,5 +19,6 @@ documentation for details.
    :caption: Contents:
    
    smalldata
+   process
 
 

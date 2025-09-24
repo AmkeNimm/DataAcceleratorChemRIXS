@@ -19,7 +19,7 @@ def sumchan_helper(raw_fims,rois):
         bg = np.mean(raw_fims[...,rois['bg_roi'][0]:rois['bg_roi'][1]],axis= -1)
         bgf = raw_fims - bg[...,np.newaxis]
         fim_sum = np.zeros([bgf.shape[0],len(rois['channels'])])
-        print(bgf.shape)
+        # print(bgf.shape)
         i=0
         #TODO: is this for loop the most efficient way - probably yes, since ROIs 
         # may be channel dependent ; confirm channel numbers match
@@ -70,4 +70,14 @@ def sum_channels(obj,fyaml): #dict includes {fim0: fim_0,....}
             summed = sumchan_helper(getattr(getattr(obj,key),'preproc'),rois[channel_dict[key]]) 
             setattr(obj, channel_dict[key], summed)
 
-
+def normalise(dat, I0):
+    #FIXME: not sure if I need to implement different cases for when dimensions are in a different order
+    if dat.ndim == 1:
+        norm = dat/I0
+    elif dat.ndim == 2:
+        norm = dat/I0[:,np.newaxis]
+    elif dat.ndim == 3:
+        norm = dat/I0[:,np.newaxis,np.newaxis]
+    else:
+        raise ValueError('Dimension don not match for normalising detector')
+    return norm

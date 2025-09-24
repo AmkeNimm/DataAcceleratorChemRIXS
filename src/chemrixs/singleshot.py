@@ -71,6 +71,7 @@ class Singleshot():
         
 
     def summing_channels(self):
+        #FIXME: check rep arte to see if dask arrays are needed 
         '''
         Function to process fims and APDs, raw data cached property
         is removed from memory after processing but can still be called

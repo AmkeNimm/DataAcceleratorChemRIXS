@@ -6,7 +6,7 @@ import yaml
 import contextlib
 from chemrixs.utils import *
 from chemrixs.smalldata import SmallData
-import scipy.stats as st
+import scipy.ndimage as ndimage
 
 class Reduced():
     """
@@ -31,23 +31,25 @@ class Reduced():
     TODO: add more error messages for potential failures
     """
 
-    def __init__(self, path: str | Path | h5py.File, bgpath: str | Path | h5py.File, fyaml: str | Path):
-    
-        #FIXME: have reduced background saved somewhere?
-           
-        self.data = SmallData(path,fyaml)
+    def __init__(self, path: str | Path | h5py.File, bgpath: str | Path | h5py.File, 
+                 fyaml: str | Path, scantype: str = '',norm: bool = True):
+        self.scantype = scantype
+        self.norm = norm
+        self.data = SmallData(path, fyaml, scantype)
+        self.proc = {}
         #load BG data or process it from smalldata and save
-        if len(self.data.yaml['red_bg_path']) == 0:
-            #process BG
-            self.bg = SmallData(bgpath,fyaml)
+        if len(self.data.yaml['red_bg_path']) == 0: #process BG
+            self.bg = SmallData(bgpath,fyaml,scantype)
             self.bg_preproc = False
-        else:
-            #load BG
+        else: #load BG from preprocessed file
+            #FIXME: how does preprocessed file look? make sure everything necessary is there
             self.bg_preproc = True
             self.bg = None
 
         self.process_int()
+        self.bin_intdet()
 
+        #FIXME: do we want a manual clear memory option?
         # if clear_memory == True:
         #     self.data.close()
         #     self.bg.close()
@@ -125,21 +127,6 @@ class Reduced():
         parsing function to call the individual processing funcitons for area detectors
         '''
 
-        #COUNTMASK
-        if len(self.data.yaml['expected_count']) == 0:
-            try:
-                expected_count = st.mode(self.data.integrating.andor_vls.count,keepdims=False)[0]
-            except:
-                expected_count = st.mode(self.data.integrating.axis_svls.count,keepdims=False)[0]
-        else:
-            expected_count = self.data.yaml['expected_count']
-            #FIXME: if the idea is to have the possibility to run integrating detectors at different rates
-            #this should be not hard coded for one detector either
-        count_mask = (self.data.integrating.andor_vls.count<expected_count+1)&(self.data.integrating.andor_vls.count>expected_count-1)
-
-
-
-
         #FIXME currently hardcoded the area detectors that are available. If these change, this needs to be fixed
 
         if 'andor_dir' in self.data.yaml['int_detectors']:
@@ -148,16 +135,27 @@ class Reduced():
         if 'andor_vls' in self.data.yaml['int_detectors']:
             self.proc_andorvls()
 
-        if 'axis_vls' in self.data.yaml['int_detectors']:
+        if 'axis_svls' in self.data.yaml['int_detectors']:
             self.proc_svls()
         
 
     def proc_andorvls(self):
+        '''
+        Function to process the VLS detector
 
+        Flexible implementation for data being provided 2D or 3D, different types of background
+        subtractions are chosen in the input yaml file
 
+        Paramters are defined in input yaml file
+        '''
 
-        #SUBTRACT BG
         background_type = self.data.yaml['int_detectors']['andor_vls']['backgroundtype']
+        roi = self.data.yaml['andor_vls']['roi']
+        threshold = self.data.yaml['andor_vls']['threshold']
+        
+
+
+        #PROCESS BG
         if background_type == 'dark':
             if self.bg_preproc == False:
                 if self.bg.integrating.andor_vls.full_area.ndim == 2:
@@ -165,21 +163,95 @@ class Reduced():
                 elif self.bg.integrating.andor_vls.full_area.ndim == 3:
                     self.bg.vls = np.mean(self.bg.integrating.andor_vls.full_area[:,:,:],0)
             delattr(self.bg.integrating.andor_vls,'full_area')
-
-
-
-
-
-        #SUMMING
-
-
-            # if 'intg' in h5_file.keys():
-            #     andor_vls = np.array(h5_file['intg/andor_vls']['full_area'])
-            # else:
-            #     andor_vls = np.array(h5_file['andor_vls']['grp_intg_full_area'])
-        
-            # if andor_vls.ndim == 2:
-            #     vls_dark_image = np.mean(andor_vls[:,:],0)
-            # if andor_vls.ndim == 3:
-            #     vls_dark_image = np.mean(andor_vls[:,:,:],0)
             
+
+        #SUBTRACT BG AND THRESHOLD
+            #FIXME: is full are the variable that is changing shape from 2 to 3?
+            if self.data.integrating.andor_vls.full_area.ndim == 2:
+                vls_dark_subtracted = self.data.integrating.andor_vls.full_area-self.bg.vls[np.newaxis,:]
+                offset_background = np.nanmean(vls_dark_subtracted[:,roi[0]:roi[1]],1)
+                vls_background_subtracted = vls_dark_subtracted - offset_background[:,np.newaxis]
+                
+                astd,amean = vls_background_subtracted[:,roi[0]:roi[1]].std(),vls_background_subtracted[:,roi[0]:roi[1]].mean()
+                vls_proc = vls_background_subtracted.copy()
+                vls_proc[vls_proc<(threshold[0]*astd)] = 0
+                vls_proc[vls_proc>threshold[1]] = 0
+
+            elif self.data.integrating.andor_vls.full_area.ndim == 3:
+
+                vls_dark_subtracted = self.data.integrating.andor_vls.full_area-self.bg.vls[np.newaxis,:,:]
+                offset_background = np.nanmean(vls_dark_subtracted[:,roi[2]:vls_offset_roi[3],roi[0]:roi[1]],(1,2))
+                vls_background_subtracted = vls_dark_subtracted - offset_background[:,np.newaxis,np.newaxis]
+
+                vls_unrotated = vls_background_subtracted.copy()
+                vls_unrotated[vls_unrotated<threshold[0]] = 0
+                vls_unrotated[vls_unrotated>threshold[1]] = 0
+                    
+                vls_rotated = ndimage.rotate(vls_unrotated,self.data.yaml['andor_vls']['rot_angle'],order=3,axes = (2,1),cval=0)
+                vls_cropped = vls_rotated[:,self.data.yaml['andor_vls']['rot_crop'][0]:self.data.yaml['andor_vls']['rot_crop'][1],:]
+                vls_proc = np.sum(vls_cropped,axis=2)
+
+            else:
+                print('Andor VLS format unknown')
+
+          #Normalise detectors to I0 from fims
+            I0 = self.data.integrating.andor_vls.I0
+            if self.norm == True:    
+                norm_vls = normalise(vls_proc,I0)
+            else:                 
+                norm_vls = vls_proc
+            
+            self.proc['andor_vls'] = {}            
+            self.proc['andor_vls']['on'] = norm_vls[self.data.integrating.andor_vls.eventcodes[:,self.data.yaml['evc'][True]]==True] #weird ymal magic turns 'on' automatically into True
+            self.proc['andor_vls']['off'] = norm_vls[self.data.integrating.andor_vls.eventcodes[:,self.data.yaml['evc'][False]]==True]
+
+    def proc_andordir(self):
+        self.proc['andor_dir'] = {}
+        self.proc['axis_svls']['on'] = []
+        self.proc['axis_svls']['off'] = []
+
+    def proc_svls(self):
+        self.proc['axis_svls'] = {}
+        self.proc['axis_svls']['on'] = []
+        self.proc['axis_svls']['off'] = []
+
+    def bin_intdet(self):
+        #FIXME: this is only binning the integrating detector itseld - associated variables also need to be binned (fims etc)
+        for detector, det_spec_dict in self.data.yaml['int_detectors'].items():
+            det = getattr(self.data.integrating,detector)
+            print(det)
+   
+            #FIXME: do I cover all potential scan types?
+            #static scan
+            if self.data.runinfo == 'static':
+                tmp_on = np.nanmean(norm_on,axis=0)
+                tmp_off = np.nanmean(norm_off,axis=0)
+                setattr(self,detector+'_on',tmp_on)
+                setattr(self,detector+'_off',tmp_off)
+
+            #step scans
+            elif (self.scantype=='mono' or self.scantype=='delay'):
+                if self.scantype=='mono':
+                    scanvar = getattr(det,'mono')
+                elif self.scantype=='delay':
+                    scanvar = getattr(det,'delay')
+                scanvar_uni = np.unique(scanvar)
+                inds = np.digitize(np.round(scanvar,4),scanvar_uni)
+        
+        
+        
+            #fly scans
+            elif (self.scantype=='mono_fly'):
+                tmp_on = np.nanmean(self.proc[detector]['on'],axis=0)
+                tmp_off = np.nanmean(self.proc[detector]['off'],axis=0)
+                setattr(self,detector+'_on',tmp_on)
+                setattr(self,detector+'_off',tmp_off)
+        
+            elif (self.scantype=='delay_fly'):
+                tmp_on = np.nanmean(self.proc[detector]['on'],axis=0)
+                tmp_off = np.nanmean(self.proc[detector]['off'],axis=0)
+                setattr(self,detector+'_on',tmp_on)
+                setattr(self,detector+'_off',tmp_off)
+        
+        else:
+            print('runtype unknown')

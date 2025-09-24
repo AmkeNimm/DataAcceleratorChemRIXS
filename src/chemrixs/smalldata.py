@@ -33,6 +33,28 @@ class SmallData:
     path : str or Path
         The filename to read from.
 
+    Attributes
+    ----------
+    is_open:
+
+    __del__:
+
+    close:
+
+    __exit__:
+
+    __enter__:
+
+    open:
+
+    runinfo:
+
+    integrating:
+
+    singleshot:
+
+
+
     Notes
     -----
     To check if a particular attribute is available, use ``hasattr(obj, attr)``.
@@ -42,8 +64,9 @@ class SmallData:
     TODO: add more error messages for potential failures
     """
 
-    def __init__(self, path: str | Path | h5py.File | h5py.Group, fyaml: str | Path):
+    def __init__(self, path: str | Path | h5py.File | h5py.Group, fyaml: str | Path, scantype: str = ''):
         self.__file = None
+        self.scantype = scantype
         # self.path = Path(path.filename).resolve()
         # #FIXME: should I keep thsi self.__file?
         # self.__file= path
@@ -124,7 +147,7 @@ class SmallData:
             self.__intgrp = self.__file["/intg"]
         
 
-
+    #FIXME: Unclear what the keys are now to identify scans...
     @cached_property
     def runinfo(self):
         """
@@ -135,23 +158,37 @@ class SmallData:
         if not self.__file:
             self.open()
         print(self.__file.keys())
-        try:
-            if 'scan' in self.__file.keys():
-                if 'mono_ev' in self.__file['/scan'].keys():
-                    scanvar = 'mono'
-                elif 'mono_ev' in self.__file['/scan'].keys():
-                    scanvar = 'delay'
-            else:
-                scanvar='static'
-                print('did not record scan variable. If this should be a delay or mono scan the scanvars may have changed')
-        except:
-            print('trouble determining scan variable')
-        
-        """
-        need to find a way to distinguish between fly and step scans here, maybe it's also okay to do that later
-        """
 
-        return scanvar
+        if len(self.scantype) > 1:
+            scantype = self.scantype
+        
+        else:
+            #FIXME: all possible scan types, x/y scane, power titrations, ...
+            try:
+                if 'scan' in self.__file.keys():
+                    if self.yaml['scanvar']['mono'] in self.__file['/scan'].keys():
+                        scantype = 'mono'
+                    elif self.yaml['scanvar']['delay'] in self.__file['/scan'].keys():
+                        scantype = 'delay'
+                    elif self.yaml['scanvar']['waveplate'] in self.__file['/scan'].keys():
+                        scantype = 'power'
+                else:
+                    #FIXME: mono_encoder linked to specific detector
+                    if (np.std(self.integrating.andor_vls.mono_encoder)>500)&self.yaml['scanvar']['mono'] not in self.__file['/scan'].keys():
+                        scantype = 'mono_fly'
+                    elif self.yaml['scanvar']['delay_fly'] in self.__file['/scan'].keys():
+                        scantype = 'delay_fly'
+                    scantype='static'
+                    print('did not record scan variable. If this should be a delay or mono scan the scanvars may have changed')
+            except:
+                print('trouble determining scan variable')
+                scantype = ''
+        
+                """
+                need to find a way to distinguish between fly and step scans here, maybe it's also okay to do that later
+                """
+
+        return scantype
 
     @cached_property
     def integrating(self) -> h5py.Group:
@@ -161,7 +198,7 @@ class SmallData:
         print('accessing intgrp')
         if not self.__file:
             self.open()
-        return Integrating(self.__intgrp, self.yaml)
+        return Integrating(self.__intgrp, self.yaml,self.scantype)
     
     @cached_property
     def singleshot(self) -> h5py.Group:
