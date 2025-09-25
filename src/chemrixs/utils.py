@@ -81,3 +81,114 @@ def normalise(dat, I0):
     else:
         raise ValueError('Dimension don not match for normalising detector')
     return norm
+
+
+def bin_data(data,bin_axis,bin_with='scan_var',normalize=True):
+    #FIXME: do I call this function for each detector somewhere else, or do I loop through the detectors here
+    # for now writing this for an individual detector
+
+     binned_data = {}
+
+
+     return binned_data
+
+
+    # def bin_detector(processed_data,detector,binning_info,normalize):
+    # binned_detector = {}
+    # variable = binning_info[0]
+    # var_unique = binning_info[1]
+    # inds = binning_info[2]
+
+    # if processed_data['laser_any'].all() == False:
+    #     laser = np.ones(processed_data['laser_any'].shape[0],'bool')
+    #     if 'off' not in binned_detector.keys():
+    #         binned_detector['off'] = {}
+    
+    #     if processed_data[detector].ndim == 1:
+    #         binned_detector['off']['sum'] = np.zeros(var_unique.shape[0])
+    #         binned_detector['off']['mean'] = np.zeros(var_unique.shape[0])
+    #         binned_detector['off']['std'] = np.zeros(var_unique.shape[0])
+            
+    #     if processed_data[detector].ndim == 2:
+    #         binned_detector['off']['sum'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
+    #         binned_detector['off']['mean'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
+    #         binned_detector['off']['std'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
+        
+    #     for i in range(0, len(var_unique)):
+    #         if normalize == True:
+    #             if processed_data[detector].ndim == 1:
+    #                 binned_detector['off']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'])[(laser)&(inds == i+1)],0))
+    #                 binned_detector['off']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'])[(laser)&(inds == i+1)],0))
+    #                 binned_detector['off']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'])[(laser)&(inds == i+1)],0))
+
+
+    #             if processed_data[detector].ndim == 2:
+    #                 binned_detector['off']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser)&(inds == i+1)],0))
+    #                 binned_detector['off']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser)&(inds == i+1)],0))
+    #                 binned_detector['off']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser)&(inds == i+1)],0))
+
+
+    #         else:
+    #             binned_detector['off']['sum'][i] = np.array(np.nansum(processed_data[detector][(laser)&(inds == i+1)],0))
+    #             binned_detector['off']['mean'][i] = np.array(np.nanmean(processed_data[detector][(laser)&(inds == i+1)],0))
+    #             binned_detector['off']['std'][i] = np.array(np.nanstd(processed_data[detector][(laser)&(inds == i+1)],0))
+
+    
+    # else:
+    #     if 'off' not in binned_detector.keys():
+    #         binned_detector['off'] = {}
+    #         binned_detector['on'] = {}
+    #     laser_on = processed_data['laser_on']
+    #     laser_off = processed_data['laser_off']
+
+    #     if processed_data[detector].ndim == 1:
+    #         binned_detector['on']['sum'] = np.zeros(var_unique.shape[0])
+    #         binned_detector['on']['mean'] = np.zeros(var_unique.shape[0])
+    #         binned_detector['on']['std'] = np.zeros(var_unique.shape[0])
+    #         binned_detector['off']['sum'] = np.zeros(var_unique.shape[0])
+    #         binned_detector['off']['mean'] = np.zeros(var_unique.shape[0])
+    #         binned_detector['off']['std'] = np.zeros(var_unique.shape[0])
+
+            
+    #     if processed_data[detector].ndim == 2:
+    #         binned_detector['on']['sum'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
+    #         binned_detector['on']['mean'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
+    #         binned_detector['on']['std'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
+    #         binned_detector['off']['sum'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
+    #         binned_detector['off']['mean'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
+    #         binned_detector['off']['std'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
+
+        
+    #     for i in range(0, len(var_unique)):
+
+    #         if normalize == True:
+    #             if processed_data[detector].ndim == 1:
+
+    #                 binned_detector['on']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'])[(laser_on)&(inds == i+1)],0))
+    #                 binned_detector['on']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'])[(laser_on)&(inds == i+1)],0))
+    #                 binned_detector['on']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'])[(laser_on)&(inds == i+1)],0))
+                    
+    #                 binned_detector['off']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'])[(laser_off)&(inds == i+1)],0))
+    #                 binned_detector['off']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'])[(laser_off)&(inds == i+1)],0))
+    #                 binned_detector['off']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'])[(laser_off)&(inds == i+1)],0))
+
+    #             if processed_data[detector].ndim == 2:
+
+    #                 binned_detector['on']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_on)&(inds == i+1)],0))
+    #                 binned_detector['on']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_on)&(inds == i+1)],0))
+    #                 binned_detector['on']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_on)&(inds == i+1)],0))
+    #                 binned_detector['off']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_off)&(inds == i+1)],0))
+    #                 binned_detector['off']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_off)&(inds == i+1)],0))
+    #                 binned_detector['off']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_off)&(inds == i+1)],0))
+                    
+    #         else:
+    #             binned_detector['on']['sum'][i] = np.array(np.nansum(processed_data[detector][(laser_on)&(inds == i+1)],0))
+    #             binned_detector['on']['mean'][i] = np.array(np.nanmean(processed_data[detector][(laser_on)&(inds == i+1)],0))
+    #             binned_detector['on']['std'][i] = np.array(np.nanstd(processed_data[detector][(laser_on)&(inds == i+1)],0))
+    #             binned_detector['off']['sum'][i] = np.array(np.nansum(processed_data[detector][(laser_off)&(inds == i+1)],0))
+    #             binned_detector['off']['mean'][i] = np.array(np.nanmean(processed_data[detector][(laser_off)&(inds == i+1)],0))
+    #             binned_detector['off']['std'][i] = np.array(np.nanstd(processed_data[detector][(laser_off)&(inds == i+1)],0))
+
+
+    
+    # return binned_detector

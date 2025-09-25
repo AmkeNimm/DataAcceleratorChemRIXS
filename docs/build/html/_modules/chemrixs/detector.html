@@ -139,41 +139,38 @@
             <span class="n">prop</span><span class="o">=</span><span class="n">cached_property</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prop_set</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">useDask</span><span class="p">,</span><span class="n">chunks</span><span class="p">))</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">prop</span><span class="p">)</span>
             <span class="n">prop</span><span class="o">.</span><span class="n">__set_name__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="Detector.process">
-<a class="viewcode-back" href="../../detector.html#chemrixs.Detector.process">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Overall function to process incoming data, this includes filtering </span>
-<span class="sd">        on I0 and mismatches in data</span>
-<span class="sd">        </span>
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        rois : dictionary</span>
-<span class="sd">            Containing ROIs for different detectors.</span>
-<span class="sd">        </span>
-
-<span class="sd">        Notes</span>
-<span class="sd">        -----</span>
-<span class="sd">        </span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1">#TODO: how to well load this, hardcoding a file name may not be ideal...</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;../roi_input.yml&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-            <span class="n">rois</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-
-        <span class="c1">#TODO: implement warning if variable does not exist</span>
-
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="s1">&#39;fim_0&#39;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">fim0</span> <span class="o">=</span> <span class="n">sum_channels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fim_0</span><span class="p">,</span><span class="n">rois</span><span class="p">[</span><span class="s1">&#39;fim0&#39;</span><span class="p">])</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="s1">&#39;fim_1&#39;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">fim1</span> <span class="o">=</span> <span class="n">sum_channels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fim_1</span><span class="p">,</span><span class="n">rois</span><span class="p">[</span><span class="s1">&#39;fim1&#39;</span><span class="p">])</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="s1">&#39;apds&#39;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">apd</span> <span class="o">=</span> <span class="n">sum_channels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apds</span><span class="p">,</span><span class="n">rois</span><span class="p">[</span><span class="s1">&#39;APDs&#39;</span><span class="p">])</span></div>
 </div>
 
+
+
+    <span class="c1"># def process(self):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Overall function to process incoming data, this includes filtering </span>
+    <span class="c1">#     on I0 and mismatches in data</span>
+        
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     rois : dictionary</span>
+    <span class="c1">#         Containing ROIs for different detectors.</span>
+        
+
+    <span class="c1">#     Notes</span>
+    <span class="c1">#     -----</span>
+        
+    <span class="c1">#     &quot;&quot;&quot;</span>
+
+    <span class="c1">#     #TODO: how to well load this, hardcoding a file name may not be ideal...</span>
+    <span class="c1">#     with open(&#39;../roi_input.yml&#39;, &#39;r&#39;) as file:</span>
+    <span class="c1">#         rois = yaml.safe_load(file)</span>
+
+    <span class="c1">#     #TODO: implement warning if variable does not exist</span>
+
+    <span class="c1">#     if hasattr(self,&#39;fim_0&#39;):</span>
+    <span class="c1">#         self.fim0 = sum_channels(self.fim_0,rois[&#39;fim0&#39;])</span>
+    <span class="c1">#     if hasattr(self,&#39;fim_1&#39;):</span>
+    <span class="c1">#         self.fim1 = sum_channels(self.fim_1,rois[&#39;fim1&#39;])</span>
+    <span class="c1">#     if hasattr(self,&#39;apds&#39;):</span>
+    <span class="c1">#         self.apd = sum_channels(self.apds,rois[&#39;APDs&#39;])</span>
 
     
     
@@ -207,6 +204,7 @@
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../smalldata.html">SmallData</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../process.html">Reduced</a></li>
 </ul>
 
 <div class="relations">

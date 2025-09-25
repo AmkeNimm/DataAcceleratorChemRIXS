@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>chemrixs.process &#8212; chemrixs  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for chemrixs.process</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">chemrixs.utils</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">chemrixs.smalldata</span><span class="w"> </span><span class="kn">import</span> <span class="n">SmallData</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.ndimage</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ndimage</span>
+
+<div class="viewcode-block" id="Reduced">
+<a class="viewcode-back" href="../../process.html#chemrixs.Reduced">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Reduced</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A  class for processing the incoming data.</span>
+
+<span class="sd">    context manager magic</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str or Path</span>
+<span class="sd">        The filename for the data to analyse.</span>
+
+<span class="sd">    bgpath : str or Path</span>
+<span class="sd">        The filename for a darkscan that can be used for background subtraction.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    To check if a particular attribute is available, use ``hasattr(obj, attr)``.</span>
+<span class="sd">    Many attributes will not show up dynamically in an interpreter, because they are</span>
+<span class="sd">    gotten dynamically from the file.</span>
+
+<span class="sd">    TODO: add more error messages for potential failures</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">bgpath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> 
+                 <span class="n">fyaml</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">scantype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scantype</span> <span class="o">=</span> <span class="n">scantype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">SmallData</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">fyaml</span><span class="p">,</span> <span class="n">scantype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1">#load BG data or process it from smalldata and save</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;red_bg_path&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c1">#process BG</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bg</span> <span class="o">=</span> <span class="n">SmallData</span><span class="p">(</span><span class="n">bgpath</span><span class="p">,</span><span class="n">fyaml</span><span class="p">,</span><span class="n">scantype</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bg_preproc</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1">#load BG from preprocessed file</span>
+            <span class="c1">#FIXME: how does preprocessed file look? make sure everything necessary is there</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bg_preproc</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bg</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_int</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_intdet</span><span class="p">()</span>
+
+        <span class="c1">#FIXME: do we want a manual clear memory option?</span>
+        <span class="c1"># if clear_memory == True:</span>
+        <span class="c1">#     self.data.close()</span>
+        <span class="c1">#     self.bg.close()</span>
+               
+      
+<div class="viewcode-block" id="Reduced.is_open">
+<a class="viewcode-back" href="../../process.html#chemrixs.Reduced.is_open">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_open</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function to check whether the file is open.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_preproc</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">is_open</span><span class="p">()</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">is_open</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">is_open</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function to close the file when the object is deleted.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Reduced.close">
+<a class="viewcode-back" href="../../process.html#chemrixs.Reduced.close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function to close the file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">*</span><span class="n">exc</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+<div class="viewcode-block" id="Reduced.open">
+<a class="viewcode-back" href="../../process.html#chemrixs.Reduced.open">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Open the file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">is_open</span><span class="p">():</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_preproc</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">is_open</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bg</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;red_bg_path&#39;</span><span class="p">],</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span></div>
+
+    
+    <span class="c1">#def process_ss(self):</span>
+        
+
+
+    <span class="c1"># def check_rois(self):</span>
+    <span class="c1">#     fig,ax=plt.subplots(1,1)</span>
+
+    <span class="c1"># def summing_channelsInt(self,fyaml):</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#     Function to process fim and crix detectors linked to each integrating detector.</span>
+
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     fyaml : dictionary containing the ROIs for signal and background</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+
+    <span class="c1">#     for detector in detectors: </span>
+    <span class="c1">#         sum_channels(getattr(self.data.integrating,detector), channels_to_integrate, fyaml)</span>
+    <span class="c1">#         #&#39;clearing cache&#39;</span>
+    <span class="c1">#         for channel in channels_to_integrate:</span>
+    <span class="c1">#             delattr(getattr(self.data.integrating, detector),channel)</span>
+
+<div class="viewcode-block" id="Reduced.process_int">
+<a class="viewcode-back" href="../../process.html#chemrixs.Reduced.process_int">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        parsing function to call the individual processing funcitons for area detectors</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1">#FIXME currently hardcoded the area detectors that are available. If these change, this needs to be fixed</span>
+
+        <span class="k">if</span> <span class="s1">&#39;andor_dir&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;int_detectors&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">proc_andordir</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="s1">&#39;andor_vls&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;int_detectors&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">proc_andorvls</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="s1">&#39;axis_svls&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;int_detectors&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">proc_svls</span><span class="p">()</span></div>
+
+        
+
+<div class="viewcode-block" id="Reduced.proc_andorvls">
+<a class="viewcode-back" href="../../process.html#chemrixs.Reduced.proc_andorvls">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">proc_andorvls</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Function to process the VLS detector</span>
+
+<span class="sd">        Flexible implementation for data being provided 2D or 3D, different types of background</span>
+<span class="sd">        subtractions are chosen in the input yaml file</span>
+
+<span class="sd">        Paramters are defined in input yaml file</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">background_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;int_detectors&#39;</span><span class="p">][</span><span class="s1">&#39;andor_vls&#39;</span><span class="p">][</span><span class="s1">&#39;backgroundtype&#39;</span><span class="p">]</span>
+        <span class="n">roi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;andor_vls&#39;</span><span class="p">][</span><span class="s1">&#39;roi&#39;</span><span class="p">]</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;andor_vls&#39;</span><span class="p">][</span><span class="s1">&#39;threshold&#39;</span><span class="p">]</span>
+        
+
+
+        <span class="c1">#PROCESS BG</span>
+        <span class="k">if</span> <span class="n">background_type</span> <span class="o">==</span> <span class="s1">&#39;dark&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg_preproc</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">full_area</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">vls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">full_area</span><span class="p">[:,:],</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">full_area</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">vls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">full_area</span><span class="p">[:,:,:],</span><span class="mi">0</span><span class="p">)</span>
+            <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="p">,</span><span class="s1">&#39;full_area&#39;</span><span class="p">)</span>
+            
+
+        <span class="c1">#SUBTRACT BG AND THRESHOLD</span>
+            <span class="c1">#FIXME: is full are the variable that is changing shape from 2 to 3?</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">full_area</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">vls_dark_subtracted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">full_area</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">vls</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span>
+                <span class="n">offset_background</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">vls_dark_subtracted</span><span class="p">[:,</span><span class="n">roi</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">roi</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">vls_background_subtracted</span> <span class="o">=</span> <span class="n">vls_dark_subtracted</span> <span class="o">-</span> <span class="n">offset_background</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+                
+                <span class="n">astd</span><span class="p">,</span><span class="n">amean</span> <span class="o">=</span> <span class="n">vls_background_subtracted</span><span class="p">[:,</span><span class="n">roi</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">roi</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">std</span><span class="p">(),</span><span class="n">vls_background_subtracted</span><span class="p">[:,</span><span class="n">roi</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">roi</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                <span class="n">vls_proc</span> <span class="o">=</span> <span class="n">vls_background_subtracted</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">vls_proc</span><span class="p">[</span><span class="n">vls_proc</span><span class="o">&lt;</span><span class="p">(</span><span class="n">threshold</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">astd</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">vls_proc</span><span class="p">[</span><span class="n">vls_proc</span><span class="o">&gt;</span><span class="n">threshold</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">full_area</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+
+                <span class="n">vls_dark_subtracted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">full_area</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">bg</span><span class="o">.</span><span class="n">vls</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:,:]</span>
+                <span class="n">offset_background</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">vls_dark_subtracted</span><span class="p">[:,</span><span class="n">roi</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span><span class="n">vls_offset_roi</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">roi</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">roi</span><span class="p">[</span><span class="mi">1</span><span class="p">]],(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+                <span class="n">vls_background_subtracted</span> <span class="o">=</span> <span class="n">vls_dark_subtracted</span> <span class="o">-</span> <span class="n">offset_background</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+                <span class="n">vls_unrotated</span> <span class="o">=</span> <span class="n">vls_background_subtracted</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">vls_unrotated</span><span class="p">[</span><span class="n">vls_unrotated</span><span class="o">&lt;</span><span class="n">threshold</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">vls_unrotated</span><span class="p">[</span><span class="n">vls_unrotated</span><span class="o">&gt;</span><span class="n">threshold</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">0</span>
+                    
+                <span class="n">vls_rotated</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">vls_unrotated</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;andor_vls&#39;</span><span class="p">][</span><span class="s1">&#39;rot_angle&#39;</span><span class="p">],</span><span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span><span class="n">axes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="n">cval</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">vls_cropped</span> <span class="o">=</span> <span class="n">vls_rotated</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;andor_vls&#39;</span><span class="p">][</span><span class="s1">&#39;rot_crop&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;andor_vls&#39;</span><span class="p">][</span><span class="s1">&#39;rot_crop&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">],:]</span>
+                <span class="n">vls_proc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">vls_cropped</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Andor VLS format unknown&#39;</span><span class="p">)</span>
+
+          <span class="c1">#Normalise detectors to I0 from fims</span>
+            <span class="n">I0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">I0</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>    
+                <span class="n">norm_vls</span> <span class="o">=</span> <span class="n">normalise</span><span class="p">(</span><span class="n">vls_proc</span><span class="p">,</span><span class="n">I0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>                 
+                <span class="n">norm_vls</span> <span class="o">=</span> <span class="n">vls_proc</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;andor_vls&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>            
+            <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;andor_vls&#39;</span><span class="p">][</span><span class="s1">&#39;on&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">norm_vls</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">eventcodes</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;evc&#39;</span><span class="p">][</span><span class="kc">True</span><span class="p">]]</span><span class="o">==</span><span class="kc">True</span><span class="p">]</span> <span class="c1">#weird ymal magic turns &#39;on&#39; automatically into True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;andor_vls&#39;</span><span class="p">][</span><span class="s1">&#39;off&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">norm_vls</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">eventcodes</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;evc&#39;</span><span class="p">][</span><span class="kc">False</span><span class="p">]]</span><span class="o">==</span><span class="kc">True</span><span class="p">]</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">proc_andordir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;andor_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;axis_svls&#39;</span><span class="p">][</span><span class="s1">&#39;on&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;axis_svls&#39;</span><span class="p">][</span><span class="s1">&#39;off&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">proc_svls</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;axis_svls&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;axis_svls&#39;</span><span class="p">][</span><span class="s1">&#39;on&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;axis_svls&#39;</span><span class="p">][</span><span class="s1">&#39;off&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">bin_intdet</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1">#FIXME: this is only binning the integrating detector itseld - associated variables also need to be binned (fims etc)</span>
+        <span class="k">for</span> <span class="n">detector</span><span class="p">,</span> <span class="n">det_spec_dict</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;int_detectors&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">det</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">integrating</span><span class="p">,</span><span class="n">detector</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">det</span><span class="p">)</span>
+   
+            <span class="c1">#FIXME: do I cover all potential scan types?</span>
+            <span class="c1">#static scan</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">runinfo</span> <span class="o">==</span> <span class="s1">&#39;static&#39;</span><span class="p">:</span>
+                <span class="n">tmp_on</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">norm_on</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">tmp_off</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">norm_off</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">detector</span><span class="o">+</span><span class="s1">&#39;_on&#39;</span><span class="p">,</span><span class="n">tmp_on</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">detector</span><span class="o">+</span><span class="s1">&#39;_off&#39;</span><span class="p">,</span><span class="n">tmp_off</span><span class="p">)</span>
+
+            <span class="c1">#step scans</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scantype</span><span class="o">==</span><span class="s1">&#39;mono&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">scantype</span><span class="o">==</span><span class="s1">&#39;delay&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scantype</span><span class="o">==</span><span class="s1">&#39;mono&#39;</span><span class="p">:</span>
+                    <span class="n">scanvar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;mono&#39;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">scantype</span><span class="o">==</span><span class="s1">&#39;delay&#39;</span><span class="p">:</span>
+                    <span class="n">scanvar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;delay&#39;</span><span class="p">)</span>
+                <span class="n">scanvar_uni</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">scanvar</span><span class="p">)</span>
+                <span class="n">inds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">scanvar</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span><span class="n">scanvar_uni</span><span class="p">)</span>
+        
+        
+        
+            <span class="c1">#fly scans</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scantype</span><span class="o">==</span><span class="s1">&#39;mono_fly&#39;</span><span class="p">):</span>
+                <span class="n">tmp_on</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="n">detector</span><span class="p">][</span><span class="s1">&#39;on&#39;</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">tmp_off</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="n">detector</span><span class="p">][</span><span class="s1">&#39;off&#39;</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">detector</span><span class="o">+</span><span class="s1">&#39;_on&#39;</span><span class="p">,</span><span class="n">tmp_on</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">detector</span><span class="o">+</span><span class="s1">&#39;_off&#39;</span><span class="p">,</span><span class="n">tmp_off</span><span class="p">)</span>
+        
+            <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scantype</span><span class="o">==</span><span class="s1">&#39;delay_fly&#39;</span><span class="p">):</span>
+                <span class="n">tmp_on</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="n">detector</span><span class="p">][</span><span class="s1">&#39;on&#39;</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">tmp_off</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="n">detector</span><span class="p">][</span><span class="s1">&#39;off&#39;</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">detector</span><span class="o">+</span><span class="s1">&#39;_on&#39;</span><span class="p">,</span><span class="n">tmp_on</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">detector</span><span class="o">+</span><span class="s1">&#39;_off&#39;</span><span class="p">,</span><span class="n">tmp_off</span><span class="p">)</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;runtype unknown&#39;</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">chemrixs</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../process.html">Reduced</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Amke Nimmrich.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

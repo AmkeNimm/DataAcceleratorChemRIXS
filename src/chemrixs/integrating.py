@@ -82,6 +82,8 @@ class Integrating():
         return super().__getattribute__(name)
     
     def summing_channels(self):
+
+        #FIXME: case for prereduced fims and APDs
         '''
         Calling function to integrate the waveform for all waveform detectors
         

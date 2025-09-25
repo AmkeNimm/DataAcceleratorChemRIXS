@@ -123,20 +123,50 @@
 <a class="viewcode-back" href="../../integrating.html#chemrixs.Integrating.summing_channels">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">summing_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
+        <span class="c1">#FIXME: case for prereduced fims and APDs</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Calling function to integrate the waveform for all waveform detectors</span>
+<span class="sd">        </span>
+<span class="sd">        These detectors include APDs and fims.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
         <span class="k">for</span> <span class="n">detector</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;int_detectors&#39;</span><span class="p">]:</span> 
-            <span class="n">sum_channels</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">detector</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">)</span>
+            <span class="n">det</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">detector</span><span class="p">)</span>
+            <span class="n">sum_channels</span><span class="p">(</span><span class="n">det</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">)</span>
+            
             <span class="c1">#&#39;clearing cache&#39;</span>
             <span class="k">for</span> <span class="n">channel</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;channels_to_integrate&#39;</span><span class="p">]:</span>
-                <span class="nb">delattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detector</span><span class="p">),</span><span class="n">channel</span><span class="p">)</span></div>
+                <span class="nb">delattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detector</span><span class="p">),</span><span class="n">channel</span><span class="p">)</span>
+
+            <span class="c1">#combine fim1 and fim0 to I0</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;fim_0&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;fim_1&#39;</span><span class="p">)):</span>
+                <span class="n">I0</span> <span class="o">=</span> <span class="n">det</span><span class="o">.</span><span class="n">fim0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">+</span><span class="n">det</span><span class="o">.</span><span class="n">fim1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;I0&#39;</span><span class="p">,</span><span class="n">I0</span><span class="p">)</span>
+                <span class="nb">delattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;fim0&#39;</span><span class="p">)</span>
+                <span class="nb">delattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;fim1&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;fim0&#39;</span><span class="p">):</span>
+                <span class="n">I0</span> <span class="o">=</span> <span class="n">det</span><span class="o">.</span><span class="n">fim0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;I0&#39;</span><span class="p">,</span><span class="n">I0</span><span class="p">)</span>
+                <span class="nb">delattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;fim0&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;fim1&#39;</span><span class="p">):</span>
+                <span class="n">I0</span> <span class="o">=</span> <span class="n">det</span><span class="o">.</span><span class="n">fim0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;I0&#39;</span><span class="p">,</span><span class="n">I0</span><span class="p">)</span>
+                <span class="nb">delattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;fim1&#39;</span><span class="p">)</span></div>
 
 
+
+   
 <div class="viewcode-block" id="Integrating.countmask">
 <a class="viewcode-back" href="../../integrating.html#chemrixs.Integrating.countmask">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">countmask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="c1">#COUNTMASK</span>
-            <span class="c1">#FIXME: if the idea is to have the possibility to run integrating detectors at different rates</span>
-            <span class="c1">#this should be not hard coded for one detector either -&gt; move into for loop belwo</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Function to filter on the counts per integrated frame</span>
 
+<span class="sd">        every integratind fram should include the same number of shots</span>
+<span class="sd">        for some frames this will not be the case due to various issues,</span>
+<span class="sd">        these frames should be filtered out for all detectors</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+            
         <span class="k">for</span> <span class="n">detector</span><span class="p">,</span> <span class="n">det_spec_dict</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;int_detectors&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span> 
 
             <span class="n">det</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">detector</span><span class="p">)</span>
@@ -163,14 +193,15 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">detector</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;int_detectors&#39;</span><span class="p">]:</span> 
                     <span class="n">det</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">detector</span><span class="p">)</span>
-            <span class="c1"># sum_channels(getattr(self,detector), self.yaml)</span>
-                    <span class="n">hrencoder</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;mono_encoder&#39;</span><span class="p">)</span>
+                    <span class="c1">#for integrating detectors, the mono encoder value is the sum over all shots</span>
+                    <span class="n">hrencoder</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;mono_encoder&#39;</span><span class="p">)</span><span class="o">/</span><span class="nb">getattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span><span class="s1">&#39;count&#39;</span><span class="p">)</span>
                     <span class="n">mono</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polyval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;mono_calib&#39;</span><span class="p">],</span><span class="n">hrencoder</span><span class="p">)</span>
                     <span class="nb">setattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span> <span class="s1">&#39;mono&#39;</span><span class="p">,</span> <span class="n">mono</span><span class="p">)</span>
+                    
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">scantype</span><span class="o">==</span><span class="p">(</span><span class="s1">&#39;delay&#39;</span> <span class="ow">or</span> <span class="s1">&#39;delay_fly&#39;</span><span class="p">):</span>
             <span class="c1">#FIXME</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">delay</span> <span class="o">=</span> <span class="p">[]</span></div>
-
+            <span class="n">delay</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">det</span><span class="p">,</span> <span class="s1">&#39;delay&#39;</span><span class="p">,</span> <span class="n">delay</span><span class="p">)</span></div>
 
 
             
@@ -204,6 +235,7 @@
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../smalldata.html">SmallData</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../process.html">Reduced</a></li>
 </ul>
 
 <div class="relations">

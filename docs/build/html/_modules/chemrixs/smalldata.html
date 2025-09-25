@@ -216,6 +216,7 @@
             <span class="n">scantype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scantype</span>
         
         <span class="k">else</span><span class="p">:</span>
+            <span class="c1">#FIXME: all possible scan types, x/y scane, power titrations, ...</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">if</span> <span class="s1">&#39;scan&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;scanvar&#39;</span><span class="p">][</span><span class="s1">&#39;mono&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -225,7 +226,8 @@
                     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;scanvar&#39;</span><span class="p">][</span><span class="s1">&#39;waveplate&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                         <span class="n">scantype</span> <span class="o">=</span> <span class="s1">&#39;power&#39;</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;scanvar&#39;</span><span class="p">][</span><span class="s1">&#39;mono_fly&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="c1">#FIXME: mono_encoder linked to specific detector</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">integrating</span><span class="o">.</span><span class="n">andor_vls</span><span class="o">.</span><span class="n">mono_encoder</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">500</span><span class="p">)</span><span class="o">&amp;</span><span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;scanvar&#39;</span><span class="p">][</span><span class="s1">&#39;mono&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                         <span class="n">scantype</span> <span class="o">=</span> <span class="s1">&#39;mono_fly&#39;</span>
                     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaml</span><span class="p">[</span><span class="s1">&#39;scanvar&#39;</span><span class="p">][</span><span class="s1">&#39;delay_fly&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">[</span><span class="s1">&#39;/scan&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                         <span class="n">scantype</span> <span class="o">=</span> <span class="s1">&#39;delay_fly&#39;</span>
@@ -294,6 +296,7 @@
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../smalldata.html">SmallData</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../process.html">Reduced</a></li>
 </ul>
 
 <div class="relations">

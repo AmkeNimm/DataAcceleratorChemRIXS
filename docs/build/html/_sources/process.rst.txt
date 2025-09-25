@@ -1,10 +1,11 @@
-SmallData
+Reduced
 =========
 
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
-   SmallData
 
-.. autoclass:: chemrixs.process
+   smalldata
+
+.. autoclass:: chemrixs.Reduced
    :members: 

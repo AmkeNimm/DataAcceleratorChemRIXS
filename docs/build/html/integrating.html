@@ -75,6 +75,22 @@ accessed again, and the data will be re-read).</p>
 <h2>Notes:<a class="headerlink" href="#notes" title="Link to this heading">¶</a></h2>
 <p>TODO: detectors and keys should be moved to yaml file, then loaded here
 Detector and key names may need to be updated if small data structure changes</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">countmask</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/chemrixs/integrating.html#Integrating.countmask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
+<dd><p>Function to filter on the counts per integrated frame</p>
+<p>every integratind fram should include the same number of shots
+for some frames this will not be the case due to various issues,
+these frames should be filtered out for all detectors</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">summing_channels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/chemrixs/integrating.html#Integrating.summing_channels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id1" title="Link to this definition">¶</a></dt>
+<dd><p>Calling function to integrate the waveform for all waveform detectors</p>
+<p>These detectors include APDs and fims.</p>
+</dd></dl>
+
 </section>
 </dd></dl>
 
@@ -113,6 +129,10 @@ Detector and key names may need to be updated if small data structure changes</p
 <li class="toctree-l2"><a class="reference internal" href="singleshot.html">Singleshot</a></li>
 <li class="toctree-l2"><a class="reference internal" href="detector.html">Detector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smalldata.html#chemrixs.SmallData"><code class="docutils literal notranslate"><span class="pre">SmallData</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="process.html">Reduced</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="smalldata.html">SmallData</a></li>
 </ul>
 </li>
 </ul>
