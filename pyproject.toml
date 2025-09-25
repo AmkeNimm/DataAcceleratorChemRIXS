@@ -21,6 +21,7 @@ dependencies = [
     "jupyter",
     "matplotlib",
     "numpy>=1.23",
+    "pandas",
     "psutil",
     "scipy>=1.9"
 ]
