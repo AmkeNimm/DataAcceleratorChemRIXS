@@ -38,6 +38,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Astronomy",
 ]
 
+[project.optional-dependencies]
+doc = ["sphinx"]
+
 
 [project.urls]
 Repository = "https://github.com/AmkeNimm/DataAcceleratorChemRIXS"
