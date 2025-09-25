@@ -15,13 +15,12 @@ description = "Python objects and interfaces for processing and analysing data r
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
-    "dask",
+    "dask[complete]",
     "h5py>=3.7",
     "ipympl",
     "jupyter",
     "matplotlib",
     "numpy>=1.23",
-    "pandas",
     "psutil",
     "scipy>=1.9"
 ]
