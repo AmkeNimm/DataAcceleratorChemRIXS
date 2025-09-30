@@ -60,15 +60,17 @@ def sum_channels(obj,fyaml): #dict includes {fim0: fim_0,....}
     
     for key in channel_dict: 
         #if we are parsing from the integrating class this is an array
-        if hasattr(getattr(obj,key), "__len__"):
-            summed = sumchan_helper(getattr(obj,key), rois[channel_dict[key]]) 
-            setattr(obj, channel_dict[key], summed)
-        #if we are parsing from the singleshot class this is an object
-        
-        #FIXME: implement option for getting channels from preproc or full area
-        else:
-            summed = sumchan_helper(getattr(getattr(obj,key),'preproc'),rois[channel_dict[key]]) 
-            setattr(obj, channel_dict[key], summed)
+        try:
+            if hasattr(getattr(obj,key), "__len__"):
+                summed = sumchan_helper(getattr(obj,key), rois[channel_dict[key]]) 
+                setattr(obj, channel_dict[key], summed)
+            #if we are parsing from the singleshot class this is an object
+            #FIXME: implement option for getting channels from preproc or full area
+            else:
+                summed = sumchan_helper(getattr(getattr(obj,key),'preproc'),rois[channel_dict[key]]) 
+                setattr(obj, channel_dict[key], summed)
+        except:
+            print(f'{key} does not exits ')
 
 def normalise(dat, I0):
     #FIXME: not sure if I need to implement different cases for when dimensions are in a different order
@@ -83,112 +85,68 @@ def normalise(dat, I0):
     return norm
 
 
-def bin_data(data,bin_axis,bin_with='scan_var',normalize=True):
+def bin_data(data,bin_axis,bins,scantype='fly'):
     #FIXME: do I call this function for each detector somewhere else, or do I loop through the detectors here
-    # for now writing this for an individual detector
+    # for now writing this for an individual detector, do on and off stuff outside this funciton too
+    idx = np.argsort(bin_axis)
+    bin_axis = bin_axis[idx]
+    if data.ndim == 1:
+        data = data[idx]
+    elif data.ndim == 2:
+        data = data[idx,:]
+    elif data.ndim == 3:
+        data = data[idx,:,:]
 
-     binned_data = {}
+    #Create bins depending on type of scan
+    if scantype == 'fly':
+        if bins[0] == 'Nbins':
+            bin_counts, bin_edges = np.histogram(bin_axis, bins=bins[1], density=True)
+        elif bins[0] == 'bin_width':
+            Nbins = int((np.max(bin_axis)-np.min(bin_axis))/bins[1])
+            bin_counts, bin_edges = np.histogram(bin_axis, bins=Nbins, density=True)
+        #FIXME: option for bins with equal number of data points
+        # elif  bins[0] == 'bin_count':
+        #     Nbins = int(len(bin_axis)/bin_count)
+        #     bin_edges = pd.cut(bin_axis,Nbins)
 
-
-     return binned_data
-
-
-    # def bin_detector(processed_data,detector,binning_info,normalize):
-    # binned_detector = {}
-    # variable = binning_info[0]
-    # var_unique = binning_info[1]
-    # inds = binning_info[2]
-
-    # if processed_data['laser_any'].all() == False:
-    #     laser = np.ones(processed_data['laser_any'].shape[0],'bool')
-    #     if 'off' not in binned_detector.keys():
-    #         binned_detector['off'] = {}
-    
-    #     if processed_data[detector].ndim == 1:
-    #         binned_detector['off']['sum'] = np.zeros(var_unique.shape[0])
-    #         binned_detector['off']['mean'] = np.zeros(var_unique.shape[0])
-    #         binned_detector['off']['std'] = np.zeros(var_unique.shape[0])
-            
-    #     if processed_data[detector].ndim == 2:
-    #         binned_detector['off']['sum'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
-    #         binned_detector['off']['mean'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
-    #         binned_detector['off']['std'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
+        else:
+            raise ValueError('binning type unclear')
         
-    #     for i in range(0, len(var_unique)):
-    #         if normalize == True:
-    #             if processed_data[detector].ndim == 1:
-    #                 binned_detector['off']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'])[(laser)&(inds == i+1)],0))
-    #                 binned_detector['off']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'])[(laser)&(inds == i+1)],0))
-    #                 binned_detector['off']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'])[(laser)&(inds == i+1)],0))
-
-
-    #             if processed_data[detector].ndim == 2:
-    #                 binned_detector['off']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser)&(inds == i+1)],0))
-    #                 binned_detector['off']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser)&(inds == i+1)],0))
-    #                 binned_detector['off']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser)&(inds == i+1)],0))
-
-
-    #         else:
-    #             binned_detector['off']['sum'][i] = np.array(np.nansum(processed_data[detector][(laser)&(inds == i+1)],0))
-    #             binned_detector['off']['mean'][i] = np.array(np.nanmean(processed_data[detector][(laser)&(inds == i+1)],0))
-    #             binned_detector['off']['std'][i] = np.array(np.nanstd(processed_data[detector][(laser)&(inds == i+1)],0))
-
-    
-    # else:
-    #     if 'off' not in binned_detector.keys():
-    #         binned_detector['off'] = {}
-    #         binned_detector['on'] = {}
-    #     laser_on = processed_data['laser_on']
-    #     laser_off = processed_data['laser_off']
-
-    #     if processed_data[detector].ndim == 1:
-    #         binned_detector['on']['sum'] = np.zeros(var_unique.shape[0])
-    #         binned_detector['on']['mean'] = np.zeros(var_unique.shape[0])
-    #         binned_detector['on']['std'] = np.zeros(var_unique.shape[0])
-    #         binned_detector['off']['sum'] = np.zeros(var_unique.shape[0])
-    #         binned_detector['off']['mean'] = np.zeros(var_unique.shape[0])
-    #         binned_detector['off']['std'] = np.zeros(var_unique.shape[0])
-
-            
-    #     if processed_data[detector].ndim == 2:
-    #         binned_detector['on']['sum'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
-    #         binned_detector['on']['mean'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
-    #         binned_detector['on']['std'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
-    #         binned_detector['off']['sum'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
-    #         binned_detector['off']['mean'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
-    #         binned_detector['off']['std'] = np.zeros([var_unique.shape[0],processed_data[detector].shape[1]])
-
+        bin_widths = bin_edges[1:] - bin_edges[:-1]
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
         
-    #     for i in range(0, len(var_unique)):
+    elif scantype == 'step':
+        scanvar = np.unique(bin_axis)
+        bin_edges = scanvar
 
-    #         if normalize == True:
-    #             if processed_data[detector].ndim == 1:
+    elif scantype == 'static':
+        bin_centers = np.mean(bin_axis)
+        bin_edges = [np.mean(bin_axis)]
+        bin_counts = len(bin_axis)
+         
+    else:
+        raise ValueError('scan type for binning not defined')
+    bin_edges = np.asarray(bin_edges)
+    print(bin_edges.shape)
+    #FIXME: by using digitize are we excluding data points at both ends?
+    inds = np.digitize(np.round(bin_axis,4),bin_edges)
 
-    #                 binned_detector['on']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'])[(laser_on)&(inds == i+1)],0))
-    #                 binned_detector['on']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'])[(laser_on)&(inds == i+1)],0))
-    #                 binned_detector['on']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'])[(laser_on)&(inds == i+1)],0))
-                    
-    #                 binned_detector['off']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'])[(laser_off)&(inds == i+1)],0))
-    #                 binned_detector['off']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'])[(laser_off)&(inds == i+1)],0))
-    #                 binned_detector['off']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'])[(laser_off)&(inds == i+1)],0))
-
-    #             if processed_data[detector].ndim == 2:
-
-    #                 binned_detector['on']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_on)&(inds == i+1)],0))
-    #                 binned_detector['on']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_on)&(inds == i+1)],0))
-    #                 binned_detector['on']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_on)&(inds == i+1)],0))
-    #                 binned_detector['off']['sum'][i] = np.array(np.nansum((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_off)&(inds == i+1)],0))
-    #                 binned_detector['off']['mean'][i] = np.array(np.nanmean((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_off)&(inds == i+1)],0))
-    #                 binned_detector['off']['std'][i] = np.array(np.nanstd((processed_data[detector]/processed_data['I0_int_sum'][:,np.newaxis])[(laser_off)&(inds == i+1)],0))
-                    
-    #         else:
-    #             binned_detector['on']['sum'][i] = np.array(np.nansum(processed_data[detector][(laser_on)&(inds == i+1)],0))
-    #             binned_detector['on']['mean'][i] = np.array(np.nanmean(processed_data[detector][(laser_on)&(inds == i+1)],0))
-    #             binned_detector['on']['std'][i] = np.array(np.nanstd(processed_data[detector][(laser_on)&(inds == i+1)],0))
-    #             binned_detector['off']['sum'][i] = np.array(np.nansum(processed_data[detector][(laser_off)&(inds == i+1)],0))
-    #             binned_detector['off']['mean'][i] = np.array(np.nanmean(processed_data[detector][(laser_off)&(inds == i+1)],0))
-    #             binned_detector['off']['std'][i] = np.array(np.nanstd(processed_data[detector][(laser_off)&(inds == i+1)],0))
+    if data.ndim == 1:
+        binned_dat_sum  = np.zeros(bin_edges.shape[0])
+        binned_dat_mean = np.zeros(bin_edges.shape[0])
+        binned_dat_std  = np.zeros(bin_edges.shape[0])
+        
+    elif data.ndim == 2:
+        binned_dat_sum  = np.zeros([bin_edges.shape[0],data.shape[1]])
+        binned_dat_mean = np.zeros([bin_edges.shape[0],data.shape[1]])
+        binned_dat_std  = np.zeros([bin_edges.shape[0],data.shape[1]])
+    else:
+        raise ValueError('Detector shape not known')
+    for i in np.arange(len(bin_edges)):
+        if not sum((inds==i))==0:
+            binned_dat_sum[i,:]  = np.nansum(data[inds==i],0)
+            binned_dat_mean[i,:] = np.nanmean(data[inds==i],0)
+            binned_dat_std[i,:]  = np.nanstd(data[inds==i],0)
 
 
-    
-    # return binned_detector
+    return bin_edges, binned_dat_sum, binned_dat_mean, binned_dat_std

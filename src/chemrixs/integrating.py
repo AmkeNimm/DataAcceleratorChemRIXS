@@ -96,8 +96,10 @@ class Integrating():
             
             #'clearing cache'
             for channel in self.yaml['channels_to_integrate']:
-                delattr(getattr(self, detector),channel)
-
+                try:
+                    delattr(getattr(self, detector),channel)
+                except:
+                    'did not delete non existing channel'
             #combine fim1 and fim0 to I0
             if (hasattr(det,'fim_0') and hasattr(det,'fim_1')):
                 I0 = det.fim0.copy()+det.fim1.copy()
@@ -145,6 +147,7 @@ class Integrating():
     def get_scanvar(self):
         if (self.scantype=='mono' or self.scantype=='mono_fly'):
             if len(self.yaml['mono_calib'])==0:
+                #FIXME: just place incoming values here
                 print('mono is not calibrated')
             else:
                 for detector in self.yaml['int_detectors']: 
@@ -155,7 +158,8 @@ class Integrating():
                     setattr(det, 'mono', mono)
                     
         elif self.scantype==('delay' or 'delay_fly'):
-            #FIXME
+            #FIXME: where is delay defined
+            #np.logical_or(scan_var_name =='lxt',scan_var_name == 'lxt_ttc')
             delay = []
             setattr(det, 'delay', delay)
 
