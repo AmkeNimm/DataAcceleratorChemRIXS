@@ -183,10 +183,11 @@ class SmallData:
             except:
                 print('trouble determining scan variable')
                 scantype = ''
-        
-                """
-                need to find a way to distinguish between fly and step scans here, maybe it's also okay to do that later
-                """
+        print(f'scantype is {scantype}')
+
+        """
+        need to find a way to distinguish between fly and step scans here, maybe it's also okay to do that later
+        """
 
         return scantype
 
@@ -198,7 +199,7 @@ class SmallData:
         print('accessing intgrp')
         if not self.__file:
             self.open()
-        return Integrating(self.__intgrp, self.yaml,self.scantype)
+        return Integrating(self.__intgrp, self.yaml,self.epics,self.scantype)
     
     @cached_property
     def singleshot(self) -> h5py.Group:
@@ -209,6 +210,18 @@ class SmallData:
         if not self.__file:
             self.open()
         return Singleshot(self.__ssgrp, self.yaml)
+    
+    @cached_property
+    def epics(self):
+        """
+        """
+        print('accessing epics')
+        if not self.__file:
+            self.open()
+        epics = {}
+        for key in self.yaml['epics']['attr'].keys():
+            epics[key] = self.__file[f"/{self.yaml['epics']['key']}/{self.yaml['epics']['attr'][key]}"][:,1]
+        return epics
        
 
 

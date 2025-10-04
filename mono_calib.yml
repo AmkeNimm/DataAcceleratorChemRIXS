@@ -1,0 +1,29 @@
+### SP1K1 Monochromator calibration constants
+
+# Calibration from 04/13/2024
+'offsetM2': 90641.0e-6
+'offsetG_LRG': 62925.3e-6
+# For now, using the same grating offset for all the gratings
+'offsetG_LEG': 62925.3e-6
+'offsetG_MEG': 62925.3e-6
+'offsetG_HEG': 62925.3e-6
+
+# grating periods, 1/mm
+'D0_LRG': 50.0
+'D0_LEG': 300.0
+'D0_MEG': 450.0
+'D0_HEG': 700.0
+
+# gratings center positions, um
+'X_LRG': 39505.0
+'X_LEG': 299000.0
+'X_MEG': 127100.0
+'X_HEG': 213000.0
+
+# gratings width, um
+'W_G': 50000.0
+
+# Deflection angles from MR1K1 and to the exit slit
+# All angles in rad
+'thetaM1': 0.03662
+'thetaES': 0.1221413

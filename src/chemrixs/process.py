@@ -47,6 +47,7 @@ class Reduced():
             self.bg = None
 
         self.process_int()
+        # print(self.data.epics())
 
         #FIXME: do we want a manual clear memory option?
         # if clear_memory == True:
@@ -137,7 +138,7 @@ class Reduced():
         if 'axis_svls' in self.data.yaml['int_detectors']:
             self.proc_svls()
         
-        #self.bin_intdet()
+        self.bin_intdet()
         
 
     def proc_andorvls(self):
@@ -169,44 +170,49 @@ class Reduced():
             
 
         #SUBTRACT BG AND THRESHOLD
-            #FIXME: is full are the variable that is changing shape from 2 to 3?
-            if self.data.integrating.andor_vls.full_area.ndim == 2:
-                vls_dark_subtracted = self.data.integrating.andor_vls.full_area#-self.bg.vls[np.newaxis,:]
-                offset_background = np.nanmean(vls_dark_subtracted[:,roi[0]:roi[1]],1)
-                vls_background_subtracted = vls_dark_subtracted - offset_background[:,np.newaxis]
-                
-                astd,amean = vls_background_subtracted[:,roi[0]:roi[1]].std(),vls_background_subtracted[:,roi[0]:roi[1]].mean()
-                vls_proc = vls_background_subtracted.copy()
-                vls_proc[vls_proc<(threshold[0]*astd)] = 0
-                vls_proc[vls_proc>threshold[1]] = 0
-
-            elif self.data.integrating.andor_vls.full_area.ndim == 3:
-
-                vls_dark_subtracted = self.data.integrating.andor_vls.full_area-self.bg.vls[np.newaxis,:,:]
-                offset_background = np.nanmean(vls_dark_subtracted[:,roi[2]:vls_offset_roi[3],roi[0]:roi[1]],(1,2))
-                vls_background_subtracted = vls_dark_subtracted - offset_background[:,np.newaxis,np.newaxis]
-
-                vls_unrotated = vls_background_subtracted.copy()
-                vls_unrotated[vls_unrotated<threshold[0]] = 0
-                vls_unrotated[vls_unrotated>threshold[1]] = 0
-                    
-                vls_rotated = ndimage.rotate(vls_unrotated,self.data.yaml['andor_vls']['rot_angle'],order=3,axes = (2,1),cval=0)
-                vls_cropped = vls_rotated[:,self.data.yaml['andor_vls']['rot_crop'][0]:self.data.yaml['andor_vls']['rot_crop'][1],:]
-                vls_proc = np.sum(vls_cropped,axis=2)
-
-            else:
-                print('Andor VLS format unknown')
-
-          #Normalise detectors to I0 from fims
-            I0 = self.data.integrating.andor_vls.I0
-            if self.norm == True:    
-                norm_vls = normalise(vls_proc,I0)
-            else:                 
-                norm_vls = vls_proc
+        #FIXME: is full are the variable that is changing shape from 2 to 3?
+        if self.data.integrating.andor_vls.full_area.ndim == 2:
+            vls_dark_subtracted = self.data.integrating.andor_vls.full_area#-self.bg.vls[np.newaxis,:]
+            offset_background = np.nanmean(vls_dark_subtracted[:,roi[0]:roi[1]],1)
+            vls_background_subtracted = vls_dark_subtracted - offset_background[:,np.newaxis]
             
-            self.proc['andor_vls'] = {}            
-            self.proc['andor_vls']['on'] = norm_vls[self.data.integrating.andor_vls.eventcodes[:,self.data.yaml['evc'][True]]==True] #weird ymal magic turns 'on' automatically into True
-            self.proc['andor_vls']['off'] = norm_vls[self.data.integrating.andor_vls.eventcodes[:,self.data.yaml['evc'][False]]==True]
+            astd,amean = vls_background_subtracted[:,roi[0]:roi[1]].std(),vls_background_subtracted[:,roi[0]:roi[1]].mean()
+            vls_proc = vls_background_subtracted.copy()
+            vls_proc[vls_proc<(threshold[0]*astd)] = 0
+            vls_proc[vls_proc>threshold[1]] = 0
+
+        elif self.data.integrating.andor_vls.full_area.ndim == 3:
+
+            vls_dark_subtracted = self.data.integrating.andor_vls.full_area-self.bg.vls[np.newaxis,:,:]
+            offset_background = np.nanmean(vls_dark_subtracted[:,roi[2]:vls_offset_roi[3],roi[0]:roi[1]],(1,2))
+            vls_background_subtracted = vls_dark_subtracted - offset_background[:,np.newaxis,np.newaxis]
+
+            vls_unrotated = vls_background_subtracted.copy()
+            vls_unrotated[vls_unrotated<threshold[0]] = 0
+            vls_unrotated[vls_unrotated>threshold[1]] = 0
+                
+            vls_rotated = ndimage.rotate(vls_unrotated,self.data.yaml['andor_vls']['rot_angle'],order=3,axes = (2,1),cval=0)
+            vls_cropped = vls_rotated[:,self.data.yaml['andor_vls']['rot_crop'][0]:self.data.yaml['andor_vls']['rot_crop'][1],:]
+            vls_proc = np.sum(vls_cropped,axis=2)
+
+        else:
+            print('Andor VLS format unknown')
+
+        #Normalise detectors to I0 from fims
+        I0 = self.data.integrating.andor_vls.I0
+        if self.norm == True:    
+            norm_vls = normalise(vls_proc,I0)
+        else:                 
+            norm_vls = vls_proc
+
+        evc_on = self.data.integrating.axis_svls.eventcodes[:,self.data.yaml['evc'][True]]
+        evc_off = self.data.integrating.axis_svls.eventcodes[:,self.data.yaml['evc'][False]]
+   
+        self.proc['andor_vls'] = {}            
+        self.proc['andor_vls']['on'] = norm_vls[evc_on==True] #weird ymal magic turns 'on' automatically into True
+        self.proc['andor_vls']['off'] = norm_vls[evc_off==True]
+        if (np.sum(evc_on)+np.sum(evc_off))==0:
+            self.proc['andor_vls']=norm_vls
 
     def proc_andordir(self):
 
@@ -249,72 +255,14 @@ class Reduced():
             norm_svls = normalise(svls_proc,I0)
         else:                 
             norm_svls = vls_proc
+        evc_on = self.data.integrating.axis_svls.eventcodes[:,self.data.yaml['evc'][True]]
+        evc_off = self.data.integrating.axis_svls.eventcodes[:,self.data.yaml['evc'][False]]
 
         self.proc['axis_svls'] = {}
-        self.proc['axis_svls']['on'] = norm_svls[self.data.integrating.axis_svls.eventcodes[:,self.data.yaml['evc'][True]]==True] #weird ymal magic turns 'on' automatically into True
-        self.proc['axis_svls']['off'] = norm_svls[self.data.integrating.axis_svls.eventcodes[:,self.data.yaml['evc'][False]]==True] #weird ymal magic turns 'off' automatically into False
-
-
-# def process_SVLS(count_masked_data,background,threshold=True,threshold_min=15,threshold_max=500):
-#     background_type = background[0]
-
-#     axis_svls = count_masked_data['svls']
-#     svls_offset_roi = background[3]
-#     if background_type == 'dark':
-#         print('Subtracting dark')
-#         dark = svls_dark(background)
-#         if axis_svls.ndim == 3:
-#             try:
-#                 svls_dark_subtracted = axis_svls-dark[np.newaxis,:,:]
-#             except:
-#                 print('Background does not match the shape of the detector, no background has been subtracted')
-#                 svls_dark_subtracted = axis_svls
-#         elif axis_svls.ndim == 2:
-#             try:
-#                 svls_dark_subtracted = axis_svls-dark[np.newaxis,:]
-#             except:
-#                 print('Background does not match the shape of the detector, no background has been subtracted')
-#                 svls_dark_subtracted = axis_svls
-#     else:
-#         print('No dark subtracted')
-#         svls_dark_subtracted = axis_svls
-#     if background_type == 'offset':
-#         if axis_svls.ndim == 3:
-#             svls_proc = np.nansum(svls_dark_subtracted,2)
-#             if 'scan_var' in count_masked_data.keys():
-#                 scan_var = count_masked_data['scan_var']
-    
-#                 fig,ax = plt.subplots(1,3,figsize=(10,5))
-#                 ax[0].plot(np.mean(axis_svls[:,:,:][scan_var==np.max(scan_var)],(0,2)),label='%s'%np.max(scan_var))
-#                 ax[0].plot(np.mean(axis_svls[:,:,:][scan_var==np.min(scan_var)],(0,2)),label='%s' %np.min(scan_var))
-#                 ax[0].plot(np.mean(dark,1),label='dark')
-#                 ax[0].set_xlabel('pixel')
-#                 ax[0].set_title('Pre background corrections')
-#                 ax[0].legend()
-                
-#                 ax[1].plot(np.mean(axis_svls[:,:,:][scan_var==np.max(scan_var)],(0,2))-np.mean(dark,1),label='%s'%np.max(scan_var))
-#                 ax[1].plot(np.mean(axis_svls[:,:,:][scan_var==np.min(scan_var)],(0,2))-np.mean(dark,1),label='%s' %np.min(scan_var))
-#                 ax[1].set_xlabel('pixel')
-#                 ax[1].set_title('Dark corrected')
-#                 ax[1].legend()
-                
-                
-#                 ax[2].plot(np.mean(svls_background_subtracted[:,:,:][scan_var==np.max(scan_var)],(0,2)),label='%s'%np.max(scan_var))
-#                 ax[2].plot(np.mean(svls_background_subtracted[:,:,:][scan_var==np.min(scan_var)],(0,2)),label='%s'%np.min(scan_var))
-#                 ax[2].set_xlabel('pixel')
-#                 ax[2].set_title('Dark and Offset corrected')
-#                 ax[2].legend()
-    
-#         if axis_svls.ndim == 2:
-#             offset_background = np.nanmean(svls_dark_subtracted[:,svls_offset_roi[0]:svls_offset_roi[1]],1)
-#             svls_background_subtracted = svls_dark_subtracted - offset_background[:,np.newaxis]
-#             svls_proc = np.flip(svls_background_subtracted,1)
-
-#     if background_type == 'None':
-#         svls_proc = np.flip(axis_svls,1)
-
-        
-#     return svls_proc
+        self.proc['axis_svls']['on'] = norm_svls[evc_on==True] #weird ymal magic turns 'on' automatically into True
+        self.proc['axis_svls']['off'] = norm_svls[evc_off==True] #weird ymal magic turns 'off' automatically into False
+        if (np.sum(evc_on)+np.sum(evc_off))==0:
+            self.proc['axis_svls']=norm_svls
 
     def bin_intdet(self):
         #FIXME: this is only binning the integrating detector itseld - associated variables also need to be binned (fims etc)
@@ -325,17 +273,31 @@ class Reduced():
             offmask = (evc[:,273]==1)
             print(det)
 
-            norm_on = self.proc[detector]['on']
-            norm_off = self.proc[detector]['off']
+            if (np.sum(onmask)+np.sum(offmask))==0:
+                norm = self.proc[detector]
+            else:
+                norm_on = self.proc[detector]['on']
+                norm_off = self.proc[detector]['off']
+
    
             #FIXME: do I cover all potential scan types?
             #static scan
             if self.data.runinfo == 'static':
                 print('static run!')
-                tmp_on = np.nanmean(norm_on,axis=0)
-                tmp_off = np.nanmean(norm_off,axis=0)
-                setattr(self,detector+'_on',tmp_on)
-                setattr(self,detector+'_off',tmp_off)
+                if (np.sum(onmask)+np.sum(offmask))==0:
+                    tmp_mean  = np.nanmean(norm,axis=0)
+                    tmp_sum = np.nanmsum(norm,axis=0)
+                    tmp_std   = np.nanstd(norm,axis=0)
+                    
+                else:
+                    tmp_on_mean  = np.nanmean(norm_on,axis=0)
+                    tmp_off_mean = np.nanmean(norm_off,axis=0)
+                    tmp_on_sum   = np.nansum(norm_on,axis=0)
+                    tmp_off_sum  = np.nansum(norm_off,axis=0)
+                    tmp_on_std   = np.nanstd(norm_on,axis=0)
+                    tmp_off_std  = np.nanstd(norm_off,axis=0)
+                
+                run = True
 
             #step scans
             elif (self.scantype=='mono' or self.scantype=='delay'):
@@ -344,16 +306,13 @@ class Reduced():
                     scanvar = getattr(det,'mono')
                 elif self.scantype=='delay':
                     scanvar = getattr(det,'delay')
-                    
-                scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std = bin_data(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='step')
-                scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std = bin_data(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='step')
                 
-                setattr(self,detector+'_on',tmp_on)
-                setattr(self,detector+'_off',tmp_off)
-                setattr(self,'scanvar_on',scanvar_on)
-                setattr(self,'scanvar_off',scanvar_off)
-        
-        
+                if (np.sum(onmask)+np.sum(offmask))==0:
+                    scanvar_bin, tmp_sum, tmp_mean, tmp_std = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='step')
+                else:
+                    scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std = bin_data(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='step')
+                    scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std = bin_data(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='step')
+                run =True
         
             #fly scans
             elif (self.scantype=='mono_fly' or self.scantype=='delay_fly'):    
@@ -362,17 +321,35 @@ class Reduced():
                     scanvar = getattr(det,'delay')
                 elif self.scantype=='mono_fly':
                     scanvar = getattr(det,'mono')
-                scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std = bin_data(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='fly')
-                scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std = bin_data(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='fly')
+                if (np.sum(onmask)+np.sum(offmask))==0:
+                    scanvar_bin, tmp_sum, tmp_mean, tmp_std = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='fly')
+                else:
+                    scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std = bin_data(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='fly')
+                    scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std = bin_data(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='fly')
    
-                setattr(self,detector+'_on_sum',tmp_on_sum)
-                setattr(self,detector+'_off_sum',tmp_off_sum)
-                setattr(self,detector+'_on_mean',tmp_on_mean)
-                setattr(self,detector+'_off_mean',tmp_off_mean)
-                setattr(self,detector+'_on_std',tmp_on_std)
-                setattr(self,detector+'_off_std',tmp_off_std)
-                setattr(self,'scanvar_on',scanvar_on)
-                setattr(self,'scanvar_off',scanvar_off)
+                run =True
+
         
             else:
                 print('runtype unknown')
+                run =False
+
+            if not run == False:
+
+                if (np.sum(onmask)+np.sum(offmask))==0:
+                    setattr(self,detector+'_sum',tmp_sum)
+                    print(detector+'_sum')
+                    setattr(self,detector+'_sum',tmp_sum)
+                    setattr(self,detector+'_mean',tmp_mean)
+                    setattr(self,'scanvar',scanvar_bin)
+
+                else:
+                    setattr(self,detector+'_on_sum',tmp_on_sum)
+                    print(detector+'_on_sum')
+                    setattr(self,detector+'_off_sum',tmp_off_sum)
+                    setattr(self,detector+'_on_mean',tmp_on_mean)
+                    setattr(self,detector+'_off_mean',tmp_off_mean)
+                    setattr(self,detector+'_on_std',tmp_on_std)
+                    setattr(self,detector+'_off_std',tmp_off_std)
+                    setattr(self,'scanvar_on',scanvar_on)
+                    setattr(self,'scanvar_off',scanvar_off)

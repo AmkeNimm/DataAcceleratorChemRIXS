@@ -150,3 +150,50 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
 
 
     return bin_edges, binned_dat_sum, binned_dat_mean, binned_dat_std
+
+def myround(x, base=5):
+    return base * np.round(x/base)
+
+def get_premirror_pitch(premirror_pitch):
+    try:
+        return np.nanmean(myround(premirror_pitch,1))
+    except:
+        # This needs improving
+        print('Add SP1K1:MONO:MMS:M_PI.RBV to epics config')
+        return 144506
+    
+def mono_energy(pitchG,pitchM2,stateG = 'LRG', fname='../mono_calib.yml'):
+    '''Calculator for RIXS mono calibration. This is the same function as what is saved to the mono eV epics variable. 
+    pitchG: Grating pitch in urad
+    pitchM2: Pre-mirror pitch in urad.
+    '''
+    import yaml
+    with open(fname, 'r') as file:
+        fy = yaml.safe_load(file)
+    if stateG=='LRG':
+        D0 = fy['D0_LRG']
+        offsetG = fy['offsetG_LRG']
+    elif stateG=='LEG':
+        D0 = fy['D0_LEG']
+        offsetG = fy['offsetG_LEG']
+    elif stateG=='MEG':
+        D0 = fy['D0_MEG']
+        offsetG = fy['offsetG_LRG']
+    elif stateG=='HEG':
+        D0 = fy['D0_HEG']
+        offsetG = fy['offsetG_HEG']
+
+     # constants
+    eVmm = 0.001239842 # Wavelenght[mm] = eVmm/Energy[eV]
+    m = 1 # diffraction order
+
+    pG = pitchG*1e-6 - offsetG
+    pM2 = pitchM2*1e-6 - fy['offsetM2']
+    alpha = np.pi/2 - pG + 2*pM2 - fy['thetaM1']
+    beta = -np.pi/2 - pG + fy['thetaES']
+    E = m*D0*eVmm/(np.sin(alpha) + np.sin(beta))
+    Cff = np.cos(beta)/np.cos(alpha)
+
+    #print('Calculated photon energy {0:6.2f} eV, Cff {1:3.2f}'.format(E, Cff))
+    return E
+ 

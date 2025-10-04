@@ -92,3 +92,12 @@ channels_to_integrate: {
     'fim_1': 'fim1',
     'apds': 'apd'
 }
+
+epics: {key: 'epics_archiver',
+        attr: {'MONO_premirror_pitch': 'SP1K1_MONO_MMS_M_PI.RBV',
+        'MONO_grating_pitch': 'SP1K1_MONO_MMS_G_PI.RBV',
+        'MONO_Calc_energy': 'SP1K1_MONO_CALC_ENERGY',
+        'ATM_stage_mm': 'LM2K2_COM_MP2_DLY1.RBV',
+        'VLS_mirror_pitch_mm': 'CRIX_VLS_MMS_MP.RBV',
+        'VLS_grating_pitch_mm': 'CRIX_VLS_MMS_GP.RBV',
+        'VLS_camera_pitch': 'CRIX_VLS_CAM_MMS_PITCH.RBV'}}
