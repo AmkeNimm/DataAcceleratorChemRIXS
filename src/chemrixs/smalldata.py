@@ -66,6 +66,7 @@ class SmallData:
 
     def __init__(self, path: str | Path | h5py.File | h5py.Group, fyaml: str | Path, scantype: str = ''):
         self.__file = None
+        self.run = int(path[-7:-3])
         self.scantype = scantype
         # self.path = Path(path.filename).resolve()
         # #FIXME: should I keep thsi self.__file?

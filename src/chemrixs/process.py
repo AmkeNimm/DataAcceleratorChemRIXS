@@ -32,7 +32,7 @@ class Reduced():
     """
 
     def __init__(self, path: str | Path | h5py.File, bgpath: str | Path | h5py.File, 
-                 fyaml: str | Path, bgyaml: str | Path, scantype: str = '',norm: bool = True):
+                 fyaml: str | Path, bgyaml: str | Path, save: bool = True, scantype: str = '',norm: bool = True):
         self.scantype = scantype
         self.norm = norm
         self.data = SmallData(path, fyaml, scantype)
@@ -48,6 +48,9 @@ class Reduced():
 
         self.process_int()
         # print(self.data.epics())
+        if save ==True:
+            self.save_dat()
+            print('saved processed data')
 
         #FIXME: do we want a manual clear memory option?
         # if clear_memory == True:
@@ -107,20 +110,7 @@ class Reduced():
     # def check_rois(self):
     #     fig,ax=plt.subplots(1,1)
 
-    # def summing_channelsInt(self,fyaml):
-    #     '''
-    #     Function to process fim and crix detectors linked to each integrating detector.
 
-    #     Parameters
-    #     ----------
-    #     fyaml : dictionary containing the ROIs for signal and background
-    #     '''
-
-    #     for detector in detectors: 
-    #         sum_channels(getattr(self.data.integrating,detector), channels_to_integrate, fyaml)
-    #         #'clearing cache'
-    #         for channel in channels_to_integrate:
-    #             delattr(getattr(self.data.integrating, detector),channel)
 
     def process_int(self):
         '''
@@ -166,7 +156,7 @@ class Reduced():
                     self.bg.vls = np.mean(self.bg.integrating.andor_vls.full_area[:,:,:],0)
             delattr(self.bg.integrating.andor_vls,'full_area')
         elif background_type == 'None':
-            self.bg.vls = np.zeros(self.data.integrating.andor_vls.full_area.shape[:-2],0)
+            self.bg.vls = np.zeros(self.data.integrating.andor_vls.full_area.shape[:-2])
             
 
         #SUBTRACT BG AND THRESHOLD
@@ -223,6 +213,11 @@ class Reduced():
     def proc_svls(self):
         background_type = self.data.yaml['int_detectors']['andor_vls']['backgroundtype']
         offset_roi = self.data.yaml['svls']['offset_roi']
+        thresh_min = self.data.yaml['svls']['threshold'][0]
+        thresh_max = self.data.yaml['svls']['threshold'][1]
+
+        self.bg.integrating.axis_svls.full_area[self.bg.integrating.axis_svls.full_area<thresh_min] = 0
+        self.bg.integrating.axis_svls.full_area[self.bg.integrating.axis_svls.full_area>thresh_max] = 0
 
         #PROCESS BG
         if background_type == 'dark':
@@ -233,10 +228,11 @@ class Reduced():
                 elif self.bg.integrating.andor_vls.full_area.ndim == 3:
                     self.bg.svls = np.mean(self.bg.integrating.axis_svls.full_area[:,:,:],0)
                     svls_proc = self.data.integrating.axis_svls.full_area-self.bg.svls[np.newaxis,:,:]
+            
             delattr(self.bg.integrating.axis_svls,'full_area')
 
         elif background_type == 'None':
-            svls_dark_subtracted = np.zeros(self.data.integrating.axis_svls.full_area.shape[-2:],0)
+            svls_proc = self.data.integrating.axis_svls.full_area
             delattr(self.bg.integrating.axis_svls,'full_area')
 
         elif background_type == 'ROI':
@@ -254,7 +250,7 @@ class Reduced():
         if self.norm == True:    
             norm_svls = normalise(svls_proc,I0)
         else:                 
-            norm_svls = vls_proc
+            norm_svls = svls_proc
         evc_on = self.data.integrating.axis_svls.eventcodes[:,self.data.yaml['evc'][True]]
         evc_off = self.data.integrating.axis_svls.eventcodes[:,self.data.yaml['evc'][False]]
 
@@ -353,3 +349,17 @@ class Reduced():
                     setattr(self,detector+'_off_std',tmp_off_std)
                     setattr(self,'scanvar_on',scanvar_on)
                     setattr(self,'scanvar_off',scanvar_off)
+
+    def save_dat(self):
+        run = self.data.run
+        output = h5py.File(f'./proc/Run{run:04d}.h5','w')
+        keys = vars(self)
+
+        for dat in keys:
+            if 'on' in dat:
+                output.create_dataset(dat,dtype='f',data=keys[dat])
+            elif 'off' in dat:
+                output.create_dataset(dat,dtype='f',data=keys[dat])
+
+
+        output.close()
