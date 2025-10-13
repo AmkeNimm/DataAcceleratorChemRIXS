@@ -5,7 +5,7 @@ red_bg_path: []
 expected_count: []
 
 #define binning
-bins: ['Nbins', 90]
+bins: ['Nbins', 30]
 
 #define eventcodes for on and off
 evc: {on: 272, off: 273, any: 274}
@@ -13,7 +13,8 @@ evc: {on: 272, off: 273, any: 274}
 #define scan variables
 scanvar: {mono: 'mono_ev', 
         mono_fly: '',
-        delay: '',
+        delay: 'scan_sum_lxt_ttc',
+        delay_fly: 'scan_sum_lxt_ttc',
         waveplate: 'lm2k2_inj_mp1_att1_wp1'}
 
 mono_calib: [-6.69478067e-03,  1.57380762e+05]
@@ -24,7 +25,7 @@ fim0:   { channels: [4,5], roi: [[66, 73],[66, 73]],  bg_roi: [0,30]}
 fim1:   { channels: [4,5,6,7], roi: [[59, 66],[59, 66],[59, 66],[59, 66]],  bg_roi: [0,30]}
 andor_vls: {roi: [1400,1600,100,150], offset_roi: [1500,1600], threshold: [3,10000], rot_angle: 4, rot_crop: [11:510]} # first 2 values used both 2D and 3D, last two only for 3D
 andor_dir: {roi: [700,1300], offset_roi: [400,500]}  # first 2 values used both 2D and 3D, last two only for 3D
-svls: {roi: [2000,6000], offset_roi: [20,100], threshold: [15,500]}  # first 2 values used both 2D and 3D, last two only for 3D
+svls: {roi: [2000,6000], offset_roi: [20,100], threshold: [0,50000]}  # first 2 values used both 2D and 3D, last two only for 3D
 
 #Which detectors to be loaded/processed:
 int_detectors: {

@@ -56,6 +56,7 @@ class Integrating():
         self.scantype = scantype
         self.yaml = fyaml
         self.epics = epics
+        
         for detector, det_spec_dict in self.yaml['int_detectors'].items():
             if detector in intgrp.keys():
                 #Creating a different class for each detector to avoid printing of attributes on all of them
@@ -74,7 +75,7 @@ class Integrating():
         self.countmask()
         # print(sum(self.andor_vls.count_mask))
         self.summing_channels()
-        self.get_scanvar()
+        self.get_scanvar(intgrp)
 
     def __getattr__(self, name):
         #This will create an error if detector is not in the small data file
@@ -138,16 +139,19 @@ class Integrating():
                     expected_count = st.mode(det.count, keepdims=False)[0]
             else:
                 expected_count = self.yaml['expected_count']
-            det.count_mask = (det.count<expected_count+2)&(det.count>expected_count-2)
+            countmask = (det.count<expected_count+2)&(det.count>expected_count-2)
+            print(countmask)
+            setattr(det,'countmask',countmask)
 
             for at in self.yaml[det_spec_dict['attrdict']]:
                 a = getattr(det,at)
-                a = a[det.count_mask]
+                a = a[countmask]
                 setattr(det, at, a)
 
-    def get_scanvar(self):
+    def get_scanvar(self,intgrp):
         print('accessing scan variable')
         if (self.scantype=='mono' or self.scantype=='mono_fly'):
+            #FIXME: fix mono scantype
             if len(self.yaml['mono_calib'])==0:
                 #FIXME: just place incoming values here
                 print('mono is not calibrated')
@@ -168,15 +172,25 @@ class Integrating():
                     elif self.scantype=='mono':
                         #FIXME: how do I here pull the scanvar 
                         hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
-                        mono = np.polyval(self.yaml['mono_calib'],hrencoder)
+                        tmp = np.polyval(self.yaml['mono_calib'],hrencoder)
+                        premirror = get_premirror_pitch(self.epics['MONO_premirror_pitch'])
+                        mono = mono_energy(tmp,premirror)
                         setattr(det, 'mono', mono)
+                        # mono = np.polyval(self.yaml['mono_calib'],hrencoder)
+                        # setattr(det, 'mono', mono)
                     
-        elif self.scantype==('delay' or 'delay_fly'):
-            delay_attr = self.yaml['scanvar']['delay']
+        elif (self.scantype=='delay' or self.scantype==('delay_fly')):
+            if self.scantype=='delay':
+                delay_attr = self.yaml['scanvar']['delay']
+            elif self.scantype=='delay_fly':
+                delay_attr = self.yaml['scanvar']['delay_fly']
             #FIXME: where is delay defined
             #np.logical_or(scan_var_name =='lxt',scan_var_name == 'lxt_ttc')
-            delay = intgrp[detector][delay_attr]
-            setattr(det, 'delay', delay)
+            for detector in self.yaml['int_detectors']: 
+                det = getattr(self,detector)
+                countmask = getattr(det, 'countmask')
+                delay = intgrp[detector][delay_attr][countmask]
+                setattr(det, 'delay', delay)
         else:
             print('scanvariable unknown')
 

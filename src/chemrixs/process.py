@@ -39,7 +39,7 @@ class Reduced():
         self.proc = {}
         #load BG data or process it from smalldata and save
         if len(self.data.yaml['red_bg_path']) == 0: #process BG
-            self.bg = SmallData(bgpath,bgyaml,scantype)
+            self.bg = SmallData(bgpath,bgyaml,'static')
             self.bg_preproc = False
         else: #load BG from preprocessed file
             #FIXME: how does preprocessed file look? make sure everything necessary is there
@@ -298,11 +298,12 @@ class Reduced():
             #step scans
             elif (self.scantype=='mono' or self.scantype=='delay'):
                 print('step scan!')
+                print(norm_on.shape)
                 if self.scantype=='mono':
                     scanvar = getattr(det,'mono')
                 elif self.scantype=='delay':
                     scanvar = getattr(det,'delay')
-                
+                print(scanvar)
                 if (np.sum(onmask)+np.sum(offmask))==0:
                     scanvar_bin, tmp_sum, tmp_mean, tmp_std = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='step')
                 else:
@@ -358,8 +359,18 @@ class Reduced():
         for dat in keys:
             if 'on' in dat:
                 output.create_dataset(dat,dtype='f',data=keys[dat])
-            elif 'off' in dat:
+            elif 'off' in dat: 
+                output.create_dataset(dat,dtype='f',data=keys[dat])
+            elif 'scanvar' in dat: 
+                output.create_dataset(dat,dtype='f',data=keys[dat])
+            elif 'mean' in dat: 
+                output.create_dataset(dat,dtype='f',data=keys[dat])
+            elif 'sum' in dat: 
+                output.create_dataset(dat,dtype='f',data=keys[dat])
+            elif 'std' in dat: 
                 output.create_dataset(dat,dtype='f',data=keys[dat])
 
 
         output.close()
+
+

@@ -1,4 +1,5 @@
 import numpy as np
+import h5py
 
 def sumchan_helper(raw_fims,rois):
     '''
@@ -88,22 +89,21 @@ def normalise(dat, I0):
 def bin_data(data,bin_axis,bins,scantype='fly'):
     #FIXME: do I call this function for each detector somewhere else, or do I loop through the detectors here
     # for now writing this for an individual detector, do on and off stuff outside this funciton too
+    bin_axis = bin_axis.squeeze()
+    print(bin_axis)
+    if bin_axis.ndim > 1:
+        raise ValueError('scanvar too many dimensions')
     idx = np.argsort(bin_axis)
     bin_axis = bin_axis[idx]
-    if data.ndim == 1:
-        data = data[idx]
-    elif data.ndim == 2:
-        data = data[idx,:]
-    elif data.ndim == 3:
-        data = data[idx,:,:]
+    data = data[idx]
 
     #Create bins depending on type of scan
     if scantype == 'fly':
         if bins[0] == 'Nbins':
-            bin_counts, bin_edges = np.histogram(bin_axis, bins=bins[1], density=True)
+            bin_counts, bin_edges = np.histogram(bin_axis, bins=bins[1], density=False)
         elif bins[0] == 'bin_width':
             Nbins = int((np.max(bin_axis)-np.min(bin_axis))/bins[1])
-            bin_counts, bin_edges = np.histogram(bin_axis, bins=Nbins, density=True)
+            bin_counts, bin_edges = np.histogram(bin_axis, bins=Nbins, density=False)
         #FIXME: option for bins with equal number of data points
         # elif  bins[0] == 'bin_count':
         #     Nbins = int(len(bin_axis)/bin_count)
@@ -111,6 +111,9 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
 
         else:
             raise ValueError('binning type unclear')
+    
+        print('bin_counts', len(bin_counts))
+        print('bin_edges', len(bin_edges))
         
         bin_widths = bin_edges[1:] - bin_edges[:-1]
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
@@ -127,9 +130,20 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
     else:
         raise ValueError('scan type for binning not defined')
     bin_edges = np.asarray(bin_edges)
-    print(bin_edges.shape)
+    print(bin_edges)
     #FIXME: by using digitize are we excluding data points at both ends?
-    inds = np.digitize(np.round(bin_axis,4),bin_edges)
+
+    ######
+    #FIXME: does not seem to be working for delay scans
+    # |
+    # V
+    #######
+    print('bin_axis', np.min(bin_axis),bin_axis.max())
+    print('bin_edges',np.min(bin_edges),bin_edges.max())
+    print('bin_width', bin_widths[0])
+
+    inds = np.digitize(bin_axis,bin_edges)
+    print(inds)
 
     if data.ndim == 1:
         binned_dat_sum  = np.zeros(bin_edges.shape[0])
@@ -142,14 +156,17 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
         binned_dat_std  = np.zeros([bin_edges.shape[0],data.shape[1]])
     else:
         raise ValueError('Detector shape not known')
+    
+    print('bin_counts',bin_counts)
+    bin_counts =np.append(1,bin_counts[:])
     for i in np.arange(len(bin_edges)):
         if not sum((inds==i))==0:
-            binned_dat_sum[i,:]  = np.nansum(data[inds==i],0)
+            binned_dat_sum[i,:]  = np.nansum(data[inds==i],0)/bin_counts[i]
             binned_dat_mean[i,:] = np.nanmean(data[inds==i],0)
             binned_dat_std[i,:]  = np.nanstd(data[inds==i],0)
 
 
-    return bin_edges, binned_dat_sum, binned_dat_mean, binned_dat_std
+    return bin_centers, binned_dat_sum[1:,:], binned_dat_mean[1:,:], binned_dat_std[1:,:]
 
 def myround(x, base=5):
     return base * np.round(x/base)
@@ -197,3 +214,25 @@ def mono_energy(pitchG,pitchM2,stateG = 'LRG', fname='../mono_calib.yml'):
     #print('Calculated photon energy {0:6.2f} eV, Cff {1:3.2f}'.format(E, Cff))
     return E
  
+
+def avg_data(runs, proc_folder):
+    avg = {}
+    with h5py.File(proc_folder+f'Run{runs[0]:04d}.h5','r') as tmp:
+        keys = list(tmp.keys())
+        for key in keys:
+            avg[key] = np.zeros(tmp[key].shape)
+
+    i=0
+    for run in runs:
+        i=i+1
+        file = proc_folder+f'Run{run:04d}.h5'
+        for key in keys:    
+            with h5py.File(file,'r') as f:
+                # print(f.keys())
+                if avg[key].shape==f[key].shape:
+                    avg[key] = avg[key] + f[key]
+                else:
+                    print(f'Run {run} shapes do not match')
+    for key in keys:
+        avg[key] = avg[key]/i
+        return avg
