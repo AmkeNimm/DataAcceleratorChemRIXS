@@ -1,11 +1,11 @@
 #If BG has been reduced, define path here:
-red_bg_path: []
+red_bg_path: './proc/run43BG.h5'
 
 #expected counts per integrating frame
 expected_count: []
 
 #define binning
-bins: ['Nbins', 30]
+bins: ['Nbins', 100]
 
 #define eventcodes for on and off
 evc: {on: 272, off: 273, any: 274}

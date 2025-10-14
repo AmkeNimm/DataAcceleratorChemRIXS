@@ -171,6 +171,11 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
 def myround(x, base=5):
     return base * np.round(x/base)
 
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
+
 def get_premirror_pitch(premirror_pitch):
     try:
         return np.nanmean(myround(premirror_pitch,1))
@@ -236,3 +241,119 @@ def avg_data(runs, proc_folder):
     for key in keys:
         avg[key] = avg[key]/i
         return avg
+    
+
+def pixel2emi(pixel, mono, dat, calib=[], points=[], w_calib_line=10, plot=True):
+    if calib == []:
+        emi,calib = calib_emi(mono, dat, points, w_calib_line=w_calib_line, plot=plot)
+    else:
+        emi = pixel*calib[0]+calib[1]
+
+    return(emi,calib)
+
+def emi2ET(mono,emission,data,step):
+   
+    
+    Etrans_in = np.zeros(data.shape)
+    
+    for i in np.arange(len(mono)):
+        for j in np.arange(len(emission)):
+            Etrans_in[i,j] = mono[i]-emission[j]
+            
+            
+    Emin = np.max(np.min(Etrans_in))
+    Emax = np.min(np.max(Etrans_in))
+    
+    E_trans = np.arange(Emin,Emax+step,step)
+    
+    data_trans = np.zeros([len(mono), len(E_trans)])
+    
+    for i in np.arange(len(E_trans)-1):
+        for ii in np.arange(len(mono)):
+            data_trans[ii,i] = np.nanmean(data[ii, np.logical_and(Etrans_in[ii,:]>E_trans[i],Etrans_in[ii,:]<E_trans[i+1])])
+            
+    data_trans[np.isnan(data_trans)] = 0
+            
+    return mono, E_trans, data_trans
+
+def calib_emi(mono, dat, end_points_el, w_calib_line=5, plot=True):
+    #FIXME
+    ix1 = find_nearest(mono,end_points_el[0][0])
+    ix2 = find_nearest(mono,end_points_el[1][0])
+    iy1 = end_points_el[0][1]
+    iy2 = end_points_el[1][1]
+
+    nx, ny = dat.shape
+
+        # --- Fit center line y ≈ m*x + c in (mono units -> pixel)
+    # Use the axis values (mono[ix]) for x
+    x_vals = np.array([mono[ix1], mono[ix2]], dtype=float)
+    y_vals = np.array([iy1, iy2], dtype=float)
+    #y = m*x+c
+    m = (iy2-iy1)/(mono[ix2]-mono[ix1])
+    c = iy1-m*mono[ix1]
+
+    mono_points = []
+    ypix_at_max = []
+
+    # --- Scan each x index within the span; search along y within top/bottom bounds
+    for ix in np.arange(ix1, ix2 + 1):
+        x_here = mono[ix]
+        y_center = m * x_here + c
+        y_lo = int(np.floor(y_center - w_calib_line/2))
+        y_hi = int(np.ceil (y_center + w_calib_line/2))
+        
+        if y_hi < y_lo:
+            y_lo, y_hi = [y_hi, y_lo]
+
+        rixs_slice = dat[ix, y_lo:y_hi + 1]
+        if rixs_slice.size == 0 or np.all(np.isnan(rixs_slice)):
+            continue
+
+        rel = int(np.nanargmax(rixs_slice))
+        iy_max = y_lo + rel
+
+        mono_points.append(x_here)
+        ypix_at_max.append(iy_max)
+
+    mono_points = np.asarray(mono_points)
+    ypix_at_max = np.asarray(ypix_at_max)
+
+    a,b = np.polyfit(ypix_at_max, mono_points, 1)
+    emi = np.polyval([a, b], np.arange(ny))
+
+    if plot_on:
+        plt.figure(figsize=(7, 6))
+        # Display Z with axes: x = mono (horizontal), y = pixel (vertical)
+        extent = [mono.min(), mono.max(), 0, ny - 1]
+        # plt.imshow(Z.T, origin='lower', extent=extent, aspect='auto')
+        plt.pcolormesh(mono,range(0,dat.shape[1]),dat.T,cmap='terrain_r')
+        plt.colorbar(label='Intensity')
+
+        # Draw the two points
+        plt.scatter([x_vals[0], x_vals[1]], [y_vals[0], y_vals[1]],
+                    s=60, c='white', edgecolor='k', label='given points')
+        plt.scatter(mono_points, ypix_at_max,
+                    s=60, c='white', edgecolor='k', label='given points')
+
+        # Draw center and top/bottom edges
+        x_line = np.linspace(mono[ix1], mono[ix2], 200)
+        y_center = m * x_line + c
+        y_top = y_center +  w_calib_line/2
+        y_bot = y_center -  w_calib_line/2
+        plt.plot(x_line, y_center, 'w--', lw=1.5, label='center line',color='k')
+        plt.plot(x_line, y_top,    'w-',  lw=1.0, alpha=0.8,color='k')
+        plt.plot(x_line, y_bot,    'w-',  lw=1.0, alpha=0.8,color='k')
+
+        # Scatter maxima used for the fit
+        plt.scatter(mono_points, ypix_at_max, s=20, c='yellow', edgecolor='k', label='max @ each x')
+
+        # Plot fitted calibration line (x vs pixel)
+        ypix = np.arange(ny)
+        plt.plot(np.polyval([a, b], ypix), ypix, 'r-', lw=2,
+                 label=f'fit: mono = {a:.6g} * pixel + {b:.6g}')
+        plt.xlim(mono[0],mono[-1])
+        plt.xlabel('Energy (mono)')
+        
+
+    return emi, [a,b]

@@ -7,6 +7,7 @@ import contextlib
 from chemrixs.utils import *
 from chemrixs.smalldata import SmallData
 import scipy.ndimage as ndimage
+import os
 
 class Reduced():
     """
@@ -38,19 +39,22 @@ class Reduced():
         self.data = SmallData(path, fyaml, scantype)
         self.proc = {}
         #load BG data or process it from smalldata and save
-        if len(self.data.yaml['red_bg_path']) == 0: #process BG
-            self.bg = SmallData(bgpath,bgyaml,'static')
-            self.bg_preproc = False
-        else: #load BG from preprocessed file
+        if os.path.isfile(self.data.yaml['red_bg_path']): #load BG from preprocessed file
             #FIXME: how does preprocessed file look? make sure everything necessary is there
             self.bg_preproc = True
-            self.bg = None
+            self.bg = BG(self.data.yaml['red_bg_path'])
+            
+        else: #process BG
+            self.bg_preproc = False
+            self.bg = SmallData(bgpath,bgyaml,'static')
 
         self.process_int()
         # print(self.data.epics())
         if save ==True:
             self.save_dat()
             print('saved processed data')
+            if self.bg_preproc == False:
+                self.save_bg()
 
         #FIXME: do we want a manual clear memory option?
         # if clear_memory == True:
@@ -150,11 +154,11 @@ class Reduced():
         #PROCESS BG
         if background_type == 'dark':
             if self.bg_preproc == False:
-                if self.bg.integrating.andor_vls.full_area.ndim == 2:
-                    self.bg.vls = np.mean(self.bg.integrating.andor_vls.full_area[:,:],0)
-                elif self.bg.integrating.andor_vls.full_area.ndim == 3:
-                    self.bg.vls = np.mean(self.bg.integrating.andor_vls.full_area[:,:,:],0)
-            delattr(self.bg.integrating.andor_vls,'full_area')
+                self.bg.vls = np.mean(self.bg.integrating.andor_vls.full_area,0)
+                delattr(self.bg.integrating.andor_vls,'full_area')
+            else:
+                self.bg.vls = np.asarray(self.bg.file['andor_vls'])
+
         elif background_type == 'None':
             self.bg.vls = np.zeros(self.data.integrating.andor_vls.full_area.shape[:-2])
             
@@ -162,7 +166,7 @@ class Reduced():
         #SUBTRACT BG AND THRESHOLD
         #FIXME: is full are the variable that is changing shape from 2 to 3?
         if self.data.integrating.andor_vls.full_area.ndim == 2:
-            vls_dark_subtracted = self.data.integrating.andor_vls.full_area#-self.bg.vls[np.newaxis,:]
+            vls_dark_subtracted = self.data.integrating.andor_vls.full_area-self.bg.vls[np.newaxis,:]
             offset_background = np.nanmean(vls_dark_subtracted[:,roi[0]:roi[1]],1)
             vls_background_subtracted = vls_dark_subtracted - offset_background[:,np.newaxis]
             
@@ -216,12 +220,14 @@ class Reduced():
         thresh_min = self.data.yaml['svls']['threshold'][0]
         thresh_max = self.data.yaml['svls']['threshold'][1]
 
-        self.bg.integrating.axis_svls.full_area[self.bg.integrating.axis_svls.full_area<thresh_min] = 0
-        self.bg.integrating.axis_svls.full_area[self.bg.integrating.axis_svls.full_area>thresh_max] = 0
+        self.data.integrating.axis_svls.full_area[self.data.integrating.axis_svls.full_area<thresh_min] = 0
+        self.data.integrating.axis_svls.full_area[self.data.integrating.axis_svls.full_area>thresh_max] = 0
 
         #PROCESS BG
         if background_type == 'dark':
             if self.bg_preproc == False:
+                self.bg.integrating.axis_svls.full_area[self.bg.integrating.axis_svls.full_area<thresh_min] = 0
+                self.bg.integrating.axis_svls.full_area[self.bg.integrating.axis_svls.full_area>thresh_max] = 0
                 if self.bg.integrating.axis_svls.full_area.ndim == 2:
                     self.bg.svls = np.mean(self.bg.integrating.axis_svls.full_area[:,:],0)
                     svls_proc = self.data.integrating.axis_svls.full_area-self.bg.svls[np.newaxis,:]
@@ -229,8 +235,15 @@ class Reduced():
                     self.bg.svls = np.mean(self.bg.integrating.axis_svls.full_area[:,:,:],0)
                     svls_proc = self.data.integrating.axis_svls.full_area-self.bg.svls[np.newaxis,:,:]
             
-            delattr(self.bg.integrating.axis_svls,'full_area')
-
+                delattr(self.bg.integrating.axis_svls,'full_area')
+            elif self.bg_preproc == True:
+                self.bg.svls = np.asarray(self.bg.file['axis_svls'])
+                if self.data.integrating.axis_svls.full_area.ndim == 2:
+                    svls_background_subtracted = self.data.integrating.axis_svls.full_area-self.bg.svls[np.newaxis,:]
+                    svls_proc = np.flip(svls_background_subtracted,1)
+                elif self.data.integrating.andor_vls.full_area.ndim == 3:
+                    svls_proc = self.data.integrating.axis_svls.full_area-self.bg.svls[np.newaxis,:,:]
+               
         elif background_type == 'None':
             svls_proc = self.data.integrating.axis_svls.full_area
             delattr(self.bg.integrating.axis_svls,'full_area')
@@ -373,4 +386,30 @@ class Reduced():
 
         output.close()
 
+
+    def save_bg(self):
+        """
+        Save processed BG
+        """
+        output = h5py.File(self.data.yaml['red_bg_path'],'w')
+        if 'andor_dir' in self.data.yaml['int_detectors']:
+            output.create_dataset('andor_dir',dtype='f',data=self.bg.dir)
+        if 'andor_vls' in self.data.yaml['int_detectors']:
+            output.create_dataset('andor_vls',dtype='f',data=self.bg.vls)
+        if 'axis_svls' in self.data.yaml['int_detectors']:
+            output.create_dataset('axis_svls',dtype='f',data=self.bg.svls)
+
+
+class BG():
+    """
+    A  class for passing in previously processed BG data.
+
+    Parameters
+    ----------
+
+    bgpath : str or Path
+        The filename for a darkscan that can be used for background subtraction.
+    """
+    def __init__(self,bgpath: str | Path | h5py.File):
+        self.file = h5py.File(bgpath,'r')
 
