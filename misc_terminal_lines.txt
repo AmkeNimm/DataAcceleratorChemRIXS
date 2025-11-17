@@ -1,3 +1,5 @@
+install miniconda: https://www.anaconda.com/docs/getting-started/miniconda/install#linux-2
+
 conda env create -f xyz.yaml #create conda environment with all packages needed for  
 conda env update -f xyz.yaml #update environment after changes in yaml file - you may need to restart terminal for this to kick in
 pip install --no-deps -e . #installing the chemrixs package

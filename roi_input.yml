@@ -1,11 +1,12 @@
 #If BG has been reduced, define path here:
-red_bg_path: './proc/run43BG.h5'
+red_bg_path: ''
 
 #expected counts per integrating frame
 expected_count: []
 
 #define binning
-bins: ['Nbins', 100]
+bins: ['bin_edges', 
+        [696.5,710,40]] #['bin_width', 0.5e-12] #['Nbins', 15]
 
 #define eventcodes for on and off
 evc: {on: 272, off: 273, any: 274}
@@ -14,23 +15,24 @@ evc: {on: 272, off: 273, any: 274}
 scanvar: {mono: 'mono_ev', 
         mono_fly: '',
         delay: 'scan_sum_lxt_ttc',
-        delay_fly: 'scan_sum_lxt_ttc',
+        delay_fly: '',
         waveplate: 'lm2k2_inj_mp1_att1_wp1'}
 
-mono_calib: [-6.69478067e-03,  1.57380762e+05]
+mono_calib: [-6.68728698e-03,  1.57380907e+05]
 
 #Defining ROIs for the different detectors
-apd:   { channels: [7], roi: [[55,60]],  bg_roi: [0,40]}
-fim0:   { channels: [4,5], roi: [[66, 73],[66, 73]],  bg_roi: [0,30]}
-fim1:   { channels: [4,5,6,7], roi: [[59, 66],[59, 66],[59, 66],[59, 66]],  bg_roi: [0,30]}
+apd:   { channels: [5,7], roi: [[65, 75],[65, 75]],  bg_roi: [0,60]}
+fim0:   { channels: [4,5,6,7], roi: [[65, 75],[65, 75],[65, 75],[65, 75]],  bg_roi: [0,60]}
+fim1:   { channels: [4,5,6,7], roi: [[59, 66],[59, 66],[59, 66],[59, 66]],  bg_roi: [0,60]}
 andor_vls: {roi: [1400,1600,100,150], offset_roi: [1500,1600], threshold: [3,10000], rot_angle: 4, rot_crop: [11:510]} # first 2 values used both 2D and 3D, last two only for 3D
 andor_dir: {roi: [700,1300], offset_roi: [400,500]}  # first 2 values used both 2D and 3D, last two only for 3D
 svls: {roi: [2000,6000], offset_roi: [20,100], threshold: [0,50000]}  # first 2 values used both 2D and 3D, last two only for 3D
 
+
 #Which detectors to be loaded/processed:
 int_detectors: {
 #    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
-    'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':(), 'backgroundtype':'dark'},
+    # 'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':(), 'backgroundtype':'dark'},
     'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks':(), 'backgroundtype':'dark'},
 }
 
@@ -54,8 +56,9 @@ andor_dir_dict: {
     'apds': 'det_crix_w8_sum_full_area',
     'fim_0': 'det_rix_fim0_sum_full_area',
     'fim_1': 'det_rix_fim1_sum_full_area',
-    'mono_encoder': 'mono_hrencoder_sum_value',
-    'piranha': 'c_piranha_sum_full_area'}
+    'mono_encoder': 'mono_hrencoder_sum_value'}
+    # ,
+    # 'piranha': 'c_piranha_sum_full_area'}
 andor_vls_dict: {
     'count': 'count',
     'full_area': 'full_area',
@@ -63,8 +66,9 @@ andor_vls_dict: {
     'apds': 'det_crix_w8_sum_full_area',
     'fim_0': 'det_rix_fim0_sum_full_area',
     'fim_1': 'det_rix_fim1_sum_full_area',
-    'mono_encoder': 'mono_hrencoder_sum_value',
-    'piranha': 'c_piranha_sum_full_area'}
+    'mono_encoder': 'mono_hrencoder_sum_value'}
+    # ,
+    # 'piranha': 'c_piranha_sum_full_area'}
 axis_svls_dict: {
     'count': 'count',
     'full_area': 'droplet_dense_curve_corr_pj_ax_1_data',
@@ -72,8 +76,9 @@ axis_svls_dict: {
     'apds': 'det_crix_w8_sum_full_area',
     'fim_0': 'det_rix_fim0_sum_full_area',
     'fim_1': 'det_rix_fim1_sum_full_area',
-    'mono_encoder': 'mono_hrencoder_sum_value',
-    'piranha': 'c_piranha_sum_full_area'}
+    'mono_encoder': 'mono_hrencoder_sum_value'}
+    # ,
+    # 'piranha': 'c_piranha_sum_full_area'}
 piranha_dict: {'full_area': 'full_area'}
 apds_dict: {'full_area': 'full_area',
              'preproc': 'wfintegrate'}
@@ -99,7 +104,7 @@ epics: {key: 'epics_archiver',
         attr: {'MONO_premirror_pitch': 'SP1K1_MONO_MMS_M_PI.RBV',
         'MONO_grating_pitch': 'SP1K1_MONO_MMS_G_PI.RBV',
         'MONO_Calc_energy': 'SP1K1_MONO_CALC_ENERGY',
-        'ATM_stage_mm': 'LM2K2_COM_MP2_DLY1.RBV',
+        # 'ATM_stage_mm': 'LM2K2_COM_MP2_DLY1.RBV',
         'VLS_mirror_pitch_mm': 'CRIX_VLS_MMS_MP.RBV',
         'VLS_grating_pitch_mm': 'CRIX_VLS_MMS_GP.RBV',
         'VLS_camera_pitch': 'CRIX_VLS_CAM_MMS_PITCH.RBV'}}

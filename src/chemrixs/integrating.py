@@ -72,10 +72,11 @@ class Integrating():
                         chunks=det_spec_dict['chunks']
                     )
                 )
-        self.countmask()
         # print(sum(self.andor_vls.count_mask))
-        self.summing_channels()
+
         self.get_scanvar(intgrp)
+        self.countmask()
+        self.summing_channels()
 
     def __getattr__(self, name):
         #This will create an error if detector is not in the small data file
@@ -140,13 +141,21 @@ class Integrating():
             else:
                 expected_count = self.yaml['expected_count']
             countmask = (det.count<expected_count+2)&(det.count>expected_count-2)
-            print(countmask)
-            setattr(det,'countmask',countmask)
-
+            breakpoint()
             for at in self.yaml[det_spec_dict['attrdict']]:
                 a = getattr(det,at)
                 a = a[countmask]
                 setattr(det, at, a)
+        
+            if (self.scantype=='delay' or self.scantype=='delay_fly'):
+                a = getattr(det,'delay')
+                a = a[countmask]
+                setattr(det, 'delay', a)
+
+            if (self.scantype=='mono' or self.scantype=='mono_fly'):
+                a = getattr(det,'mono')
+                a = a[countmask]
+                setattr(det, 'mono', a)
 
     def get_scanvar(self,intgrp):
         print('accessing scan variable')
@@ -188,8 +197,8 @@ class Integrating():
             #np.logical_or(scan_var_name =='lxt',scan_var_name == 'lxt_ttc')
             for detector in self.yaml['int_detectors']: 
                 det = getattr(self,detector)
-                countmask = getattr(det, 'countmask')
-                delay = intgrp[detector][delay_attr][countmask]
+                # countmask = getattr(det, 'countmask')
+                delay = intgrp[detector][delay_attr]
                 setattr(det, 'delay', delay)
         else:
             print('scanvariable unknown')

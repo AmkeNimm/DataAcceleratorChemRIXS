@@ -105,22 +105,25 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
             Nbins = int((np.max(bin_axis)-np.min(bin_axis))/bins[1])
             bin_counts, bin_edges = np.histogram(bin_axis, bins=Nbins, density=False)
         #FIXME: option for bins with equal number of data points
-        # elif  bins[0] == 'bin_count':
-        #     Nbins = int(len(bin_axis)/bin_count)
-        #     bin_edges = pd.cut(bin_axis,Nbins)
+        elif  bins[0] == 'bin_edges':
+            bin_edges = np.linspace(float(bins[1][0]),float(bins[1][1]),int(bins[1][2]))
+
 
         else:
             raise ValueError('binning type unclear')
     
-        print('bin_counts', len(bin_counts))
+        # print('bin_counts', len(bin_counts))
         print('bin_edges', len(bin_edges))
         
         bin_widths = bin_edges[1:] - bin_edges[:-1]
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
         
     elif scantype == 'step':
-        scanvar = np.unique(bin_axis)
+        scanvar,bin_counts = np.unique(bin_axis,return_counts=True)
         bin_edges = scanvar
+        bin_widths = bin_edges[1:] - bin_edges[:-1]
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        # bin_counts = np.bincount(bin_axis)
 
     elif scantype == 'static':
         bin_centers = np.mean(bin_axis)
@@ -156,12 +159,12 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
         binned_dat_std  = np.zeros([bin_edges.shape[0],data.shape[1]])
     else:
         raise ValueError('Detector shape not known')
-    
-    print('bin_counts',bin_counts)
-    bin_counts =np.append(1,bin_counts[:])
+    #FIXME: normalisation by bin counts missing
+    # print('bin_counts',bin_counts)
+    # bin_counts =np.append(1,bin_counts[:])
     for i in np.arange(len(bin_edges)):
         if not sum((inds==i))==0:
-            binned_dat_sum[i,:]  = np.nansum(data[inds==i],0)/bin_counts[i]
+            # binned_dat_sum[i,:]  = np.nansum(data[inds==i],0)/bin_counts[i]
             binned_dat_mean[i,:] = np.nanmean(data[inds==i],0)
             binned_dat_std[i,:]  = np.nanstd(data[inds==i],0)
 
@@ -185,7 +188,8 @@ def get_premirror_pitch(premirror_pitch):
         return 144506
     
 def mono_energy(pitchG,pitchM2,stateG = 'LRG', fname='../mono_calib.yml'):
-    '''Calculator for RIXS mono calibration. This is the same function as what is saved to the mono eV epics variable. 
+    '''Calculator for RIXS mono calibration. This is the same function as 
+    what is saved to the mono eV epics variable. 
     pitchG: Grating pitch in urad
     pitchM2: Pre-mirror pitch in urad.
     '''
@@ -224,6 +228,7 @@ def avg_data(runs, proc_folder):
     avg = {}
     with h5py.File(proc_folder+f'Run{runs[0]:04d}.h5','r') as tmp:
         keys = list(tmp.keys())
+        print(keys)
         for key in keys:
             avg[key] = np.zeros(tmp[key].shape)
 
@@ -231,21 +236,27 @@ def avg_data(runs, proc_folder):
     for run in runs:
         i=i+1
         file = proc_folder+f'Run{run:04d}.h5'
+        # FIXME: 
         for key in keys:    
             with h5py.File(file,'r') as f:
                 # print(f.keys())
                 if avg[key].shape==f[key].shape:
-                    avg[key] = avg[key] + f[key]
+                    avg[key] = avg[key] + np.asarray(f[key])
+                    print(f[key])
                 else:
-                    print(f'Run {run} shapes do not match')
+                    print(f'Run {run} {key} shapes do not match')
+            
     for key in keys:
         avg[key] = avg[key]/i
-        return avg
+    return avg
     
 
-def pixel2emi(pixel, mono, dat, calib=[], points=[], w_calib_line=10, plot=True):
+def pixel2emi(pixel, dat, mono=[], calib=[], points=[], w_calib_line=10, plot=True):
     if calib == []:
-        emi,calib = calib_emi(mono, dat, points, w_calib_line=w_calib_line, plot=plot)
+        if mono == []:
+            raise TypeError('Need mono energies for emission calibration')
+        else:
+            emi,calib = calib_emi(mono, dat, points, w_calib_line=w_calib_line, plot=plot)
     else:
         emi = pixel*calib[0]+calib[1]
 

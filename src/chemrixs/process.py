@@ -154,7 +154,8 @@ class Reduced():
         #PROCESS BG
         if background_type == 'dark':
             if self.bg_preproc == False:
-                self.bg.vls = np.mean(self.bg.integrating.andor_vls.full_area,0)
+                getattr(self.bg.integrating.andor_vls,'full_area')
+                self.bg.vls = np.nanmean(self.bg.integrating.andor_vls.full_area,0)
                 delattr(self.bg.integrating.andor_vls,'full_area')
             else:
                 self.bg.vls = np.asarray(self.bg.file['andor_vls'])
@@ -187,7 +188,7 @@ class Reduced():
                 
             vls_rotated = ndimage.rotate(vls_unrotated,self.data.yaml['andor_vls']['rot_angle'],order=3,axes = (2,1),cval=0)
             vls_cropped = vls_rotated[:,self.data.yaml['andor_vls']['rot_crop'][0]:self.data.yaml['andor_vls']['rot_crop'][1],:]
-            vls_proc = np.sum(vls_cropped,axis=2)
+            vls_proc = np.nansum(vls_cropped,axis=2)
 
         else:
             print('Andor VLS format unknown')
@@ -205,7 +206,7 @@ class Reduced():
         self.proc['andor_vls'] = {}            
         self.proc['andor_vls']['on'] = norm_vls[evc_on==True] #weird ymal magic turns 'on' automatically into True
         self.proc['andor_vls']['off'] = norm_vls[evc_off==True]
-        if (np.sum(evc_on)+np.sum(evc_off))==0:
+        if (np.nansum(evc_on)+np.nansum(evc_off))==0:
             self.proc['andor_vls']=norm_vls
 
     def proc_andordir(self):
@@ -215,24 +216,26 @@ class Reduced():
         self.proc['axis_dir']['off'] = []
 
     def proc_svls(self):
-        background_type = self.data.yaml['int_detectors']['andor_vls']['backgroundtype']
+        background_type = self.data.yaml['int_detectors']['axis_svls']['backgroundtype']
         offset_roi = self.data.yaml['svls']['offset_roi']
         thresh_min = self.data.yaml['svls']['threshold'][0]
         thresh_max = self.data.yaml['svls']['threshold'][1]
 
-        self.data.integrating.axis_svls.full_area[self.data.integrating.axis_svls.full_area<thresh_min] = 0
-        self.data.integrating.axis_svls.full_area[self.data.integrating.axis_svls.full_area>thresh_max] = 0
+        # self.data.integrating.axis_svls.full_area[self.data.integrating.axis_svls.full_area<thresh_min] = 0
+        # self.data.integrating.axis_svls.full_area[self.data.integrating.axis_svls.full_area>thresh_max] = 0
+        # self.data.integrating.axis_svls.full_area[np.isnan(self.data.integrating.axis_svls.full_area)] = 0
 
         #PROCESS BG
         if background_type == 'dark':
             if self.bg_preproc == False:
-                self.bg.integrating.axis_svls.full_area[self.bg.integrating.axis_svls.full_area<thresh_min] = 0
-                self.bg.integrating.axis_svls.full_area[self.bg.integrating.axis_svls.full_area>thresh_max] = 0
+                # self.bg.integrating.axis_svls.full_area[self.bg.integrating.axis_svls.full_area<thresh_min] = 0
+                # self.bg.integrating.axis_svls.full_area[self.bg.integrating.axis_svls.full_area>thresh_max] = 0
+                # self.bg.integrating.axis_svls.full_area[np.isnan(self.bg.integrating.axis_svls.full_area)] = 0
                 if self.bg.integrating.axis_svls.full_area.ndim == 2:
-                    self.bg.svls = np.mean(self.bg.integrating.axis_svls.full_area[:,:],0)
+                    self.bg.svls = np.nanmean(self.bg.integrating.axis_svls.full_area[:,:],0)
                     svls_proc = self.data.integrating.axis_svls.full_area-self.bg.svls[np.newaxis,:]
                 elif self.bg.integrating.andor_vls.full_area.ndim == 3:
-                    self.bg.svls = np.mean(self.bg.integrating.axis_svls.full_area[:,:,:],0)
+                    self.bg.svls = np.nanmean(self.bg.integrating.axis_svls.full_area[:,:,:],0)
                     svls_proc = self.data.integrating.axis_svls.full_area-self.bg.svls[np.newaxis,:,:]
             
                 delattr(self.bg.integrating.axis_svls,'full_area')
@@ -270,7 +273,7 @@ class Reduced():
         self.proc['axis_svls'] = {}
         self.proc['axis_svls']['on'] = norm_svls[evc_on==True] #weird ymal magic turns 'on' automatically into True
         self.proc['axis_svls']['off'] = norm_svls[evc_off==True] #weird ymal magic turns 'off' automatically into False
-        if (np.sum(evc_on)+np.sum(evc_off))==0:
+        if (np.nansum(evc_on)+np.nansum(evc_off))==0:
             self.proc['axis_svls']=norm_svls
 
     def bin_intdet(self):
@@ -282,7 +285,7 @@ class Reduced():
             offmask = (evc[:,273]==1)
             print(det)
 
-            if (np.sum(onmask)+np.sum(offmask))==0:
+            if (np.nansum(onmask)+np.nansum(offmask))==0:
                 norm = self.proc[detector]
             else:
                 norm_on = self.proc[detector]['on']
@@ -291,9 +294,10 @@ class Reduced():
    
             #FIXME: do I cover all potential scan types?
             #static scan
+            breakpoint()   
             if self.data.runinfo == 'static':
                 print('static run!')
-                if (np.sum(onmask)+np.sum(offmask))==0:
+                if (np.nansum(onmask)+np.nansum(offmask))==0:
                     tmp_mean  = np.nanmean(norm,axis=0)
                     tmp_sum = np.nanmsum(norm,axis=0)
                     tmp_std   = np.nanstd(norm,axis=0)
@@ -317,13 +321,12 @@ class Reduced():
                 elif self.scantype=='delay':
                     scanvar = getattr(det,'delay')
                 print(scanvar)
-                if (np.sum(onmask)+np.sum(offmask))==0:
+                if (np.nansum(onmask)+np.nansum(offmask))==0:
                     scanvar_bin, tmp_sum, tmp_mean, tmp_std = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='step')
                 else:
                     scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std = bin_data(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='step')
                     scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std = bin_data(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='step')
-                run =True
-        
+                run =True     
             #fly scans
             elif (self.scantype=='mono_fly' or self.scantype=='delay_fly'):    
                 print('fly scan!')
@@ -331,9 +334,11 @@ class Reduced():
                     scanvar = getattr(det,'delay')
                 elif self.scantype=='mono_fly':
                     scanvar = getattr(det,'mono')
-                if (np.sum(onmask)+np.sum(offmask))==0:
+                if (np.nansum(onmask)+np.nansum(offmask))==0:
                     scanvar_bin, tmp_sum, tmp_mean, tmp_std = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='fly')
                 else:
+                    
+                    breakpoint() 
                     scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std = bin_data(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='fly')
                     scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std = bin_data(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='fly')
    
@@ -346,16 +351,13 @@ class Reduced():
 
             if not run == False:
 
-                if (np.sum(onmask)+np.sum(offmask))==0:
-                    setattr(self,detector+'_sum',tmp_sum)
-                    print(detector+'_sum')
+                if (np.nansum(onmask)+np.nansum(offmask))==0:
                     setattr(self,detector+'_sum',tmp_sum)
                     setattr(self,detector+'_mean',tmp_mean)
                     setattr(self,'scanvar',scanvar_bin)
 
                 else:
                     setattr(self,detector+'_on_sum',tmp_on_sum)
-                    print(detector+'_on_sum')
                     setattr(self,detector+'_off_sum',tmp_off_sum)
                     setattr(self,detector+'_on_mean',tmp_on_mean)
                     setattr(self,detector+'_off_mean',tmp_off_mean)
@@ -365,6 +367,7 @@ class Reduced():
                     setattr(self,'scanvar_off',scanvar_off)
 
     def save_dat(self):
+        print('savingdata')
         run = self.data.run
         output = h5py.File(f'./proc/Run{run:04d}.h5','w')
         keys = vars(self)
@@ -391,7 +394,12 @@ class Reduced():
         """
         Save processed BG
         """
-        output = h5py.File(self.data.yaml['red_bg_path'],'w')
+        if len(self.data.yaml['red_bg_path'])==0:
+            bgfname = f'./proc/BG_run{self.bg.run}.h5'
+        else:
+            bgfname = self.data.yaml['red_bg_path']
+        output = h5py.File(bgfname,'w')
+        print(self.data.yaml['red_bg_path'])
         if 'andor_dir' in self.data.yaml['int_detectors']:
             output.create_dataset('andor_dir',dtype='f',data=self.bg.dir)
         if 'andor_vls' in self.data.yaml['int_detectors']:
