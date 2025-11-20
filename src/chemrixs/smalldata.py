@@ -66,14 +66,14 @@ class SmallData:
 
     def __init__(self, path: str | Path | h5py.File | h5py.Group, fyaml: str | Path, scantype: str = ''):
         self.__file = None
-        self.run = int(path[-7:-3])
+    
         self.scantype = scantype
         # self.path = Path(path.filename).resolve()
         # #FIXME: should I keep thsi self.__file?
         # self.__file= path
 
         ########
-
+        #after thes
         if isinstance(path, h5py.File):
             self.path = Path(path.filename).resolve()
             self.__file = path
@@ -84,6 +84,13 @@ class SmallData:
             self.path = Path(path).resolve()
             #self.___File is not assigned here, cause the input is not an h5 file or group,
             # so we are only loading it in self.open()
+        ind_run = str(self.path).find('Run')
+        if ind_run == -1:
+            raise ValueError('Given h5 file has no defined run number')
+        try:
+            self.run = int(str(self.path)[ind_run+3:ind_run+7])
+        except ValueError as e:
+            raise ValueError('Given h5 file has no defined run number') from e
 
         ########
 
@@ -200,7 +207,7 @@ class SmallData:
         print('accessing intgrp')
         if not self.__file:
             self.open()
-        return Integrating(self.__intgrp, self.yaml,self.epics,self.scantype)
+        return Integrating(self.__intgrp, self.yaml,self.epics,self.scantype,self.run)
     
     @cached_property
     def singleshot(self) -> h5py.Group:
@@ -221,6 +228,7 @@ class SmallData:
             self.open()
         epics = {}
         for key in self.yaml['epics']['attr'].keys():
+            print(f"/{self.yaml['epics']['key']}/{self.yaml['epics']['attr'][key]}")
             epics[key] = self.__file[f"/{self.yaml['epics']['key']}/{self.yaml['epics']['attr'][key]}"][:,1]
         return epics
        

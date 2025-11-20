@@ -3,3 +3,6 @@ install miniconda: https://www.anaconda.com/docs/getting-started/miniconda/insta
 conda env create -f xyz.yaml #create conda environment with all packages needed for  
 conda env update -f xyz.yaml #update environment after changes in yaml file - you may need to restart terminal for this to kick in
 pip install --no-deps -e . #installing the chemrixs package
+pytest --cov=chemrixs
+pytest --cov=chemrixs --cov-report=term-missing #with info which lines are missing
+pytest --cov=chemrixs --cov-report html # prints out html with marked red/green for uncovere/covered code

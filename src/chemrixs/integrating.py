@@ -52,10 +52,11 @@ class Integrating():
 
     """
 
-    def __init__(self, intgrp: h5py.Group, fyaml: dict, epics: dict, scantype: str = ''):
+    def __init__(self, intgrp: h5py.Group, fyaml: dict, epics: dict, scantype: str = '', run: int = 1):
         self.scantype = scantype
         self.yaml = fyaml
         self.epics = epics
+        self.run = run
         
         for detector, det_spec_dict in self.yaml['int_detectors'].items():
             if detector in intgrp.keys():
@@ -141,7 +142,7 @@ class Integrating():
             else:
                 expected_count = self.yaml['expected_count']
             countmask = (det.count<expected_count+2)&(det.count>expected_count-2)
-            breakpoint()
+            # breakpoint()
             for at in self.yaml[det_spec_dict['attrdict']]:
                 a = getattr(det,at)
                 a = a[countmask]
@@ -171,22 +172,37 @@ class Integrating():
             else:
                 for detector in self.yaml['int_detectors']: 
                     det = getattr(self,detector)
-                    #for integrating detectors, the mono encoder value is the sum over all shots
-                    if self.scantype=='mono_fly':
-                        hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
-                        tmp = np.polyval(self.yaml['mono_calib'],hrencoder)
-                        premirror = get_premirror_pitch(self.epics['MONO_premirror_pitch'])
-                        mono = mono_energy(tmp,premirror)
-                        setattr(det, 'mono', mono)
-                    elif self.scantype=='mono':
-                        #FIXME: how do I here pull the scanvar 
-                        hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
-                        tmp = np.polyval(self.yaml['mono_calib'],hrencoder)
-                        premirror = get_premirror_pitch(self.epics['MONO_premirror_pitch'])
-                        mono = mono_energy(tmp,premirror)
-                        setattr(det, 'mono', mono)
-                        # mono = np.polyval(self.yaml['mono_calib'],hrencoder)
-                        # setattr(det, 'mono', mono)
+                    # mono_calib=[]
+                    for i in np.arange(len(self.yaml['mono_calib'])):
+                        tmp = np.asarray()
+                        print(self.run)
+                        print(self.yaml['mono_calib'][0][0])
+                        mono_config = np.asarray(self.yaml['mono_calib'][i])
+                        if np.logical_and((self.run>mono_config[0]),(self.run<mono_config[1])):
+                            mono_calib = mono_config[2:3]
+                    if len(mono_calib)==0:
+                        print('mono is not calibrated for this run')
+                        for detector in self.yaml['int_detectors']: 
+                            det = getattr(self,detector)
+                            hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
+                            setattr(det, 'mono', hrencoder)
+                    else:
+                        #for integrating detectors, the mono encoder value is the sum over all shots
+                        if self.scantype=='mono_fly':
+                            hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
+                            tmp = np.polyval(mono_calib,hrencoder)
+                            premirror = get_premirror_pitch(self.epics['MONO_premirror_pitch'])
+                            mono = mono_energy(tmp,premirror)
+                            setattr(det, 'mono', mono)
+                        elif self.scantype=='mono':
+                            #FIXME: how do I here pull the scanvar 
+                            hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
+                            tmp = np.polyval(mono_calib,hrencoder)
+                            premirror = get_premirror_pitch(self.epics['MONO_premirror_pitch'])
+                            mono = mono_energy(tmp,premirror)
+                            setattr(det, 'mono', mono)
+                            # mono = np.polyval(self.yaml['mono_calib'],hrencoder)
+                            # setattr(det, 'mono', mono)
                     
         elif (self.scantype=='delay' or self.scantype==('delay_fly')):
             if self.scantype=='delay':

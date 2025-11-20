@@ -12,6 +12,7 @@ dependencies:
   - psana
   - psutil
   - pytest
+  - pytest-cov
   - python>=3.11
   - pyyaml
   - scipy
