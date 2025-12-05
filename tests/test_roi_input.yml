@@ -14,7 +14,7 @@ evc: {on: 272, off: 273, any: 274}
 #define scan variables
 scanvar: {mono: 'mono_ev', 
         mono_fly: '',
-        delay: 'scan_sum_lxt_ttc',
+        delay: 'lxt_ttc',
         delay_fly: '',
         waveplate: 'lm2k2_inj_mp1_att1_wp1'}
 
@@ -31,8 +31,8 @@ svls: {roi: [2000,6000], offset_roi: [20,100], threshold: [0,50000]}  # first 2 
 
 #Which detectors to be loaded/processed:
 int_detectors: {
-#    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
-    # 'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':(), 'backgroundtype':'dark'},
+    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
+    'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':(), 'backgroundtype':'dark'},
     'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks':(), 'backgroundtype':'dark'},
 }
 

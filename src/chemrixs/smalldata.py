@@ -64,7 +64,7 @@ class SmallData:
     TODO: add more error messages for potential failures
     """
 
-    def __init__(self, path: str | Path | h5py.File | h5py.Group, fyaml: str | Path, scantype: str = ''):
+    def __init__(self, path: str | Path | h5py.File, fyaml: str | Path, scantype: str = ''):
         self.__file = None
     
         self.scantype = scantype
@@ -77,9 +77,9 @@ class SmallData:
         if isinstance(path, h5py.File):
             self.path = Path(path.filename).resolve()
             self.__file = path
-        elif isinstance(path, h5py.Group):
-            self.path = Path(path.file.filename).resolve()
-            self.__file = path.file
+        # elif isinstance(path, h5py.Group):
+        #     self.path = Path(path.file.filename).resolve()
+        #     self.__file = path.file
         elif isinstance(path, str | Path):
             self.path = Path(path).resolve()
             #self.___File is not assigned here, cause the input is not an h5 file or group,
@@ -148,11 +148,15 @@ class SmallData:
         Open the file.
         """
         if not self.__file:
+            print('file')
             self.__file = h5py.File(self.path, "r")
             self.__intgrp = self.__file["/intg"]
             self.__ssgrp = self.__file["/"]
+        #FIXME: why do we have to call the intgp this way
         if not hasattr(self, '_SmallData__intgrp'):
             self.__intgrp = self.__file["/intg"]
+        if not hasattr(self, '_SmallData__ssgrp'):
+            self.__ssgrp = self.__file["/"]
         
 
     #FIXME: Unclear what the keys are now to identify scans...
@@ -165,15 +169,19 @@ class SmallData:
         """
         if not self.__file:
             self.open()
-        print(self.__file.keys())
 
         if len(self.scantype) > 1:
             scantype = self.scantype
         
         else:
             #FIXME: all possible scan types, x/y scane, power titrations, ...
+
             try:
+                print(self.__file)   
+                
+                print(self._SmallData__file.keys())   
                 if 'scan' in self.__file.keys():
+                    print(self.__file['scan'].keys())   
                     if self.yaml['scanvar']['mono'] in self.__file['/scan'].keys():
                         scantype = 'mono'
                     elif self.yaml['scanvar']['delay'] in self.__file['/scan'].keys():
@@ -182,7 +190,7 @@ class SmallData:
                         scantype = 'power'
                 else:
                     #FIXME: mono_encoder linked to specific detector
-                    if (np.std(self.integrating.andor_vls.mono_encoder)>500)&self.yaml['scanvar']['mono'] not in self.__file['/scan'].keys():
+                    if (np.std(self.integrating.axis_svls.mono_encoder)>500)&self.yaml['scanvar']['mono'] not in self.__file['/scan'].keys():
                         scantype = 'mono_fly'
                     elif self.yaml['scanvar']['delay_fly'] in self.__file['/scan'].keys():
                         scantype = 'delay_fly'

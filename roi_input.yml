@@ -6,7 +6,7 @@ expected_count: []
 
 #define binning
 bins: ['bin_edges', 
-        [696.5,710,40]] #['bin_width', 0.5e-12] #['Nbins', 15]
+        [392,402,40]] #['bin_width', 0.5e-12] #['Nbins', 15]
 
 #define eventcodes for on and off
 evc: {on: 272, off: 273, any: 274}
@@ -18,8 +18,11 @@ scanvar: {mono: 'mono_ev',
         delay_fly: '',
         waveplate: 'lm2k2_inj_mp1_att1_wp1'}
 
-mono_calib: [-6.68728698e-03,  1.57380907e+05]
-
+mono_calib: [[1,59,-6.68728698e-03,  1.57380907e+05],
+            [60,105,-6.66539114e-03,  1.57380901e+05],
+            [106,126,-6.69253862e-03,  1.57378184e+05],
+            [107,500,-6.66360141e-03,  1.57359964e+05]]
+            
 #Defining ROIs for the different detectors
 apd:   { channels: [5,7], roi: [[65, 75],[65, 75]],  bg_roi: [0,60]}
 fim0:   { channels: [4,5,6,7], roi: [[65, 75],[65, 75],[65, 75],[65, 75]],  bg_roi: [0,60]}

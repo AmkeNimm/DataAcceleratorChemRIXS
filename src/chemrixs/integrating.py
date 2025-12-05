@@ -174,7 +174,6 @@ class Integrating():
                     det = getattr(self,detector)
                     # mono_calib=[]
                     for i in np.arange(len(self.yaml['mono_calib'])):
-                        tmp = np.asarray()
                         print(self.run)
                         print(self.yaml['mono_calib'][0][0])
                         mono_config = np.asarray(self.yaml['mono_calib'][i])
