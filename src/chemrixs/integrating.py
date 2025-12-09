@@ -172,7 +172,7 @@ class Integrating():
             else:
                 for detector in self.yaml['int_detectors']: 
                     det = getattr(self,detector)
-                    # mono_calib=[]
+                    mono_calib=[]
                     for i in np.arange(len(self.yaml['mono_calib'])):
                         print(self.run)
                         print(self.yaml['mono_calib'][0][0])

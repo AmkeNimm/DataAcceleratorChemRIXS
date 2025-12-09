@@ -10,6 +10,7 @@ import yaml
 from chemrixs.singleshot import Singleshot
 from chemrixs.integrating import Integrating
 import contextlib
+import numpy as np
 
 class SmallData:
     """
@@ -67,7 +68,7 @@ class SmallData:
     def __init__(self, path: str | Path | h5py.File, fyaml: str | Path, scantype: str = ''):
         self.__file = None
     
-        self.scantype = scantype
+        self.runinfo = scantype
         # self.path = Path(path.filename).resolve()
         # #FIXME: should I keep thsi self.__file?
         # self.__file= path
@@ -160,45 +161,48 @@ class SmallData:
         
 
     #FIXME: Unclear what the keys are now to identify scans...
+
     @cached_property
-    def runinfo(self):
+    def scantype(self):
         """
         Function to determine the type of run that is being analysed.
 
 
         """
+        if len(self.runinfo) > 1:
+            return self.runinfo
+         
         if not self.__file:
             self.open()
-
-        if len(self.scantype) > 1:
-            scantype = self.scantype
         
-        else:
-            #FIXME: all possible scan types, x/y scane, power titrations, ...
-
-            try:
-                print(self.__file)   
-                
-                print(self._SmallData__file.keys())   
-                if 'scan' in self.__file.keys():
-                    print(self.__file['scan'].keys())   
-                    if self.yaml['scanvar']['mono'] in self.__file['/scan'].keys():
-                        scantype = 'mono'
-                    elif self.yaml['scanvar']['delay'] in self.__file['/scan'].keys():
-                        scantype = 'delay'
-                    elif self.yaml['scanvar']['waveplate'] in self.__file['/scan'].keys():
-                        scantype = 'power'
-                else:
-                    #FIXME: mono_encoder linked to specific detector
-                    if (np.std(self.integrating.axis_svls.mono_encoder)>500)&self.yaml['scanvar']['mono'] not in self.__file['/scan'].keys():
-                        scantype = 'mono_fly'
-                    elif self.yaml['scanvar']['delay_fly'] in self.__file['/scan'].keys():
-                        scantype = 'delay_fly'
-                    scantype='static'
-                    print('did not record scan variable. If this should be a delay or mono scan the scanvars may have changed')
-            except:
-                print('trouble determining scan variable')
-                scantype = ''
+    
+        #FIXME: all possible scan types, x/y scane, power titrations, ...
+        # try:
+        print(self.__file)   
+        
+        print(self._SmallData__file.keys())   
+        if 'scan' in self.__file.keys():
+            print(self.__file['scan'].keys())   
+            if self.yaml['scanvar']['mono'] in self.__file['/scan'].keys():
+                scantype = 'mono'
+            elif self.yaml['scanvar']['delay'] in self.__file['/scan'].keys():
+                scantype = 'delay'
+            elif self.yaml['scanvar']['waveplate'] in self.__file['/scan'].keys():
+                scantype = 'power'
+            elif self.yaml['scanvar']['delay_fly'] in self.__file['/scan'].keys():
+                scantype = 'delay_fly'
+        else:           
+            #FIXME: mono_encoder linked to specific detector
+            if (np.std(self.__file['intg']['axis_svls']['mono_hrencoder_sum_value'])>500):
+                scantype = 'mono_fly'
+                # self.close() #need to close file cause I open it by calling integrating above
+            else:
+                scantype='static'
+                print('did not record scan variable. If this should be a delay or mono scan the scanvars may have changed')
+        # except:
+        #     print('trouble determining scan variable')
+        #     scantype = ''
+        #     assert False
         print(f'scantype is {scantype}')
 
         """
@@ -215,6 +219,7 @@ class SmallData:
         print('accessing intgrp')
         if not self.__file:
             self.open()
+            
         return Integrating(self.__intgrp, self.yaml,self.epics,self.scantype,self.run)
     
     @cached_property

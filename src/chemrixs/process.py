@@ -295,7 +295,7 @@ class Reduced():
             #FIXME: do I cover all potential scan types?
             #static scan
             breakpoint()   
-            if self.data.runinfo == 'static':
+            if self.data.scantype == 'static':
                 print('static run!')
                 if (np.nansum(onmask)+np.nansum(offmask))==0:
                     tmp_mean  = np.nanmean(norm,axis=0)

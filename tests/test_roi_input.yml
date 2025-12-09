@@ -18,7 +18,7 @@ scanvar: {mono: 'mono_ev',
         delay_fly: '',
         waveplate: 'lm2k2_inj_mp1_att1_wp1'}
 
-mono_calib: [-6.68728698e-03,  1.57380907e+05]
+mono_calib: [[0,500,-6.68728698e-03,  1.57380907e+05]]
 
 #Defining ROIs for the different detectors
 apd:   { channels: [5,7], roi: [[65, 75],[65, 75]],  bg_roi: [0,60]}

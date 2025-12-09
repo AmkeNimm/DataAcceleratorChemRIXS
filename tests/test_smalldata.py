@@ -1,25 +1,34 @@
 
-import numpy as np
-from chemrixs.smalldata import SmallData
-import yaml
-import shutil
-import pytest
 from pathlib import Path
+
 import h5py
+import numpy as np
+import pytest
+import shutil
+import yaml
 
-@pytest.fixture
-def get_test_file():
-    fname='/sdf/home/a/amke/DataAcceleratorChemRIXS/tests/testfile_Run0000.h5'
-    fyaml='/sdf/home/a/amke/DataAcceleratorChemRIXS/tests/test_roi_input.yml'
+from chemrixs.smalldata import SmallData
 
-    yield fname, fyaml    
+# @pytest.fixture
+def get_test_file(type='undef'):
+
+    testfile_dict = {'delay':'delay_scan_testfile_Run0000.h5',
+                     'mono':'mono_scan_testfile_Run0000.h5',
+                     'mono_fly':'mono_fly_testfile_Run0000.h5',
+                     'undef':'testfile_Run0000.h5'}
+    
+    # fname=str(Path(__file__).absolute().parent/'testfile_Run0000.h5')
+    fname = str(Path(__file__).absolute().parent/testfile_dict[type])
+    fyaml = str(Path(__file__).absolute().parent/'test_roi_input.yml')
+
+    return fname, fyaml    
 
 
-def test_smalldata_hasdatfor_svls_vls_andordir(get_test_file):
-    fname, fyaml = get_test_file
+def test_smalldata_hasdatfor_svls_vls_andordir():
+    fname, fyaml = get_test_file()
     data1 = SmallData(fname,fyaml)
-    with h5py.File(fname,'r') as fh5:
-        data2 =SmallData(fh5,fyaml)
+    with h5py.File(fname,'r') as fh5: 
+        data2 = SmallData(fh5,fyaml)
     fPath = Path(fname)
     data3 = SmallData(fPath,fyaml)
     
@@ -40,23 +49,23 @@ def test_smalldata_hasdatfor_svls_vls_andordir(get_test_file):
         assert data.is_open()
 
 @pytest.mark.parametrize('file_str', ['testfile.h5','testfile_Run0.h5'])
-def test_smalldata_filename_error(tmp_path, file_str,get_test_file):
+def test_smalldata_filename_error(tmp_path, file_str):
     #test errors here
-    fname_org, fyaml = get_test_file
+    fname_org, fyaml = get_test_file()
     fname = tmp_path /file_str
     shutil.copy(fname_org,fname)
     with pytest.raises(ValueError,match='Given h5 file has no defined run number'):
-        data = SmallData(fname,fyaml)
+        SmallData(fname,fyaml)
 
 @pytest.mark.parametrize('file_str', ['testfile.yaml'])
-def test_smalldata_yamlerrors(tmp_path, file_str,get_test_file):
-    fname, fyaml_org = get_test_file
+def test_smalldata_yamlerrors(tmp_path, file_str):
+    fname, fyaml_org = get_test_file()
     fyaml = tmp_path /file_str
     with pytest.raises(FileNotFoundError,match='Config yaml file not found - check filename'):
-        data = SmallData(fname,fyaml)
+        SmallData(fname,fyaml)
 
-def test_closeSmalldata(get_test_file):
-    fname, fyaml = get_test_file
+def test_closeSmalldata():
+    fname, fyaml = get_test_file()
     data = SmallData(fname,fyaml)
     closed_attr = ['_SmallData__intgrp','_SmallData__ssgrp']
 
@@ -70,26 +79,19 @@ def test_closeSmalldata(get_test_file):
         assert hasattr(data, attr)
     assert data._SmallData__file is not None
 
-@pytest.mark.parametrize('file_str', ['delay_scan_testfile_Run0000.h5','mono_scan_testfile_Run0000.h5','mono_fly_testfile_Run0000.h5'])
-def test_runinfo(tmp_path, file_str,get_test_file):
-    fname_org, fyaml = get_test_file
+@pytest.mark.parametrize(('type','file_str'), [('delay','delay_scan_testfile_Run0000.h5'),('mono','mono_scan_testfile_Run0000.h5'),('mono_fly','mono_fly_testfile_Run0000.h5')])
+def test_runinfo(tmp_path, type, file_str):
+    fname_org, fyaml = get_test_file(type)
     fname = tmp_path /file_str # this is now a path object
     shutil.copy(fname_org,fname)
     data = SmallData(fname,fyaml)
-    assert hasattr(data,'runinfo')
+    assert hasattr(data,'scantype')
 
-    print(data.runinfo)
-    if 'delay_scan' in file_str:
-        print(file_str)
-        data = SmallData(fname,fyaml)
-        assert data.scantype=='delay'
-        data = SmallData(fname,fyaml,'delay')
-    if 'mono_scan' in file_str:
-        data = SmallData(fname,fyaml,'mono')
-    if 'delay_fly' in file_str:
-        data = SmallData(fname,fyaml,'delay_fly')
-    if 'mono_fly' in file_str:
-        data = SmallData(fname,fyaml,'mono_fly')
-    assert hasattr(data,'runinfo')
+ 
+    data = SmallData(fname,fyaml,type)
+    assert data.scantype==type
+    data = SmallData(fname,fyaml)
+    assert data.scantype==type
+
 
 
