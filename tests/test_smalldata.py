@@ -15,6 +15,7 @@ def get_test_file(type='undef'):
     testfile_dict = {'delay':'delay_scan_testfile_Run0000.h5',
                      'mono':'mono_scan_testfile_Run0000.h5',
                      'mono_fly':'mono_fly_testfile_Run0000.h5',
+                     'power':'waveplate_testfile_Run0000.h5',
                      'undef':'testfile_Run0000.h5'}
     
     # fname=str(Path(__file__).absolute().parent/'testfile_Run0000.h5')
@@ -79,11 +80,12 @@ def test_closeSmalldata():
         assert hasattr(data, attr)
     assert data._SmallData__file is not None
 
-@pytest.mark.parametrize(('type','file_str'), [('delay','delay_scan_testfile_Run0000.h5'),('mono','mono_scan_testfile_Run0000.h5'),('mono_fly','mono_fly_testfile_Run0000.h5')])
-def test_runinfo(tmp_path, type, file_str):
-    fname_org, fyaml = get_test_file(type)
-    fname = tmp_path /file_str # this is now a path object
-    shutil.copy(fname_org,fname)
+@pytest.mark.parametrize(('type'), [('delay'),('mono'), ('mono_fly'), ('power')])
+def test_runinfo(type):
+    fname, fyaml = get_test_file(type)
+    # fname = tmp_path /file_str # this is now a path object
+    # shutil.copy(fname_org,fname)
+    print(fname)
     data = SmallData(fname,fyaml)
     assert hasattr(data,'scantype')
 
