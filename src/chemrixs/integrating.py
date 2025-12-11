@@ -159,7 +159,6 @@ class Integrating():
                 setattr(det, 'mono', a)
 
     def get_scanvar(self,intgrp):
-        print('accessing scan variable')
         if (self.scantype=='mono' or self.scantype=='mono_fly'):
             #FIXME: fix mono scantype
             if len(self.yaml['mono_calib'])==0:
@@ -174,8 +173,6 @@ class Integrating():
                     det = getattr(self,detector)
                     mono_calib=[]
                     for i in np.arange(len(self.yaml['mono_calib'])):
-                        print(self.run)
-                        print(self.yaml['mono_calib'][0][0])
                         mono_config = np.asarray(self.yaml['mono_calib'][i])
                         if np.logical_and((self.run>mono_config[0]),(self.run<mono_config[1])):
                             mono_calib = mono_config[2:3]

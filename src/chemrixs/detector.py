@@ -42,7 +42,6 @@ class Detector():
             gotten dynamically from the file.
         """
 
-        print(f'initialising {group}')
         #group = first level grou, e.g. andordir, data_to_read: lower level data in andor_dir
         self.grp = group
         self.prop_factory(data_to_read, useDask, chunks)
@@ -67,7 +66,6 @@ class Detector():
         
         """
         def fget(self):
-            print('loading'+data_set)
             if useDask:
                 return da.from_array(self.grp[data_set][()], chunks = chunks)
             return self.grp[data_set][()]

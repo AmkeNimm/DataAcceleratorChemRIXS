@@ -129,6 +129,7 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
         bin_centers = np.mean(bin_axis)
         bin_edges = [np.mean(bin_axis)]
         bin_counts = len(bin_axis)
+        bin_widths = bin_edges[1:] - bin_edges[:-1]
          
     else:
         raise ValueError('scan type for binning not defined')
@@ -143,7 +144,7 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
     #######
     print('bin_axis', np.min(bin_axis),bin_axis.max())
     print('bin_edges',np.min(bin_edges),bin_edges.max())
-    print('bin_width', bin_widths[0])
+    print('bin_width', bin_widths)
 
     inds = np.digitize(bin_axis,bin_edges)
     print(inds)

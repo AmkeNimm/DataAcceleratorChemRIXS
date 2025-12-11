@@ -149,7 +149,6 @@ class SmallData:
         Open the file.
         """
         if not self.__file:
-            print('file')
             self.__file = h5py.File(self.path, "r")
             self.__intgrp = self.__file["/intg"]
             self.__ssgrp = self.__file["/"]
@@ -178,11 +177,8 @@ class SmallData:
     
         #FIXME: all possible scan types, x/y scane, power titrations, ...
         # try:
-        print(self.__file)   
         
-        print(self._SmallData__file.keys())   
-        if 'scan' in self.__file.keys():
-            print(self.__file['scan'].keys())   
+        if 'scan' in self.__file.keys():   
             if self.yaml['scanvar']['mono'] in self.__file['/scan'].keys():
                 scantype = 'mono'
             elif self.yaml['scanvar']['delay'] in self.__file['/scan'].keys():
@@ -203,11 +199,6 @@ class SmallData:
         #     print('trouble determining scan variable')
         #     scantype = ''
         #     assert False
-        print(f'scantype is {scantype}')
-
-        """
-        need to find a way to distinguish between fly and step scans here, maybe it's also okay to do that later
-        """
 
         return scantype
 
@@ -216,7 +207,6 @@ class SmallData:
         """
         Function to get the integrated detector group and load data into attribute.
         """
-        print('accessing intgrp')
         if not self.__file:
             self.open()
             
@@ -227,7 +217,6 @@ class SmallData:
         """
         Function to get the single shot detector group and load data into attribute.
         """
-        print('accessing SSdat')
         if not self.__file:
             self.open()
         return Singleshot(self.__ssgrp, self.yaml)
@@ -236,12 +225,10 @@ class SmallData:
     def epics(self):
         """
         """
-        print('accessing epics')
         if not self.__file:
             self.open()
         epics = {}
         for key in self.yaml['epics']['attr'].keys():
-            print(f"/{self.yaml['epics']['key']}/{self.yaml['epics']['attr'][key]}")
             epics[key] = self.__file[f"/{self.yaml['epics']['key']}/{self.yaml['epics']['attr'][key]}"][:,1]
         return epics
        

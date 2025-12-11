@@ -283,7 +283,6 @@ class Reduced():
             evc = getattr(det, 'eventcodes')
             onmask = (evc[:,272]==1)
             offmask = (evc[:,273]==1)
-            print(det)
 
             if (np.nansum(onmask)+np.nansum(offmask))==0:
                 norm = self.proc[detector]
@@ -315,12 +314,10 @@ class Reduced():
             #step scans
             elif (self.scantype=='mono' or self.scantype=='delay'):
                 print('step scan!')
-                print(norm_on.shape)
                 if self.scantype=='mono':
                     scanvar = getattr(det,'mono')
                 elif self.scantype=='delay':
                     scanvar = getattr(det,'delay')
-                print(scanvar)
                 if (np.nansum(onmask)+np.nansum(offmask))==0:
                     scanvar_bin, tmp_sum, tmp_mean, tmp_std = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='step')
                 else:
@@ -367,7 +364,7 @@ class Reduced():
                     setattr(self,'scanvar_off',scanvar_off)
 
     def save_dat(self):
-        print('savingdata')
+        print('saving data')
         run = self.data.run
         output = h5py.File(f'./proc/Run{run:04d}.h5','w')
         keys = vars(self)
@@ -399,7 +396,6 @@ class Reduced():
         else:
             bgfname = self.data.yaml['red_bg_path']
         output = h5py.File(bgfname,'w')
-        print(self.data.yaml['red_bg_path'])
         if 'andor_dir' in self.data.yaml['int_detectors']:
             output.create_dataset('andor_dir',dtype='f',data=self.bg.dir)
         if 'andor_vls' in self.data.yaml['int_detectors']:
