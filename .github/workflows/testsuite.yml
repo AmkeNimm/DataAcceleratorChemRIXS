@@ -30,7 +30,7 @@ jobs:
         with:
           miniforge-version: latest
           python-version: ${{ env.PYTHON }}
-          environment-file: ci/${{ env.ENV_NAME }}.yaml
+          environment-file: conf.yml
           activate-environment: ${{ env.ENV_NAME }}
           conda-remove-defaults: "true"
 
