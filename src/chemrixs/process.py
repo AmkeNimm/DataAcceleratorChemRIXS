@@ -279,6 +279,7 @@ class Reduced():
     def bin_intdet(self):
         #FIXME: this is only binning the integrating detector itseld - associated variables also need to be binned (fims etc)
         for detector, det_spec_dict in self.data.yaml['int_detectors'].items():
+
             det = getattr(self.data.integrating,detector)
             evc = getattr(det, 'eventcodes')
             onmask = (evc[:,272]==1)
@@ -290,7 +291,7 @@ class Reduced():
                 norm_on = self.proc[detector]['on']
                 norm_off = self.proc[detector]['off']
 
-   
+            print(self.data.scantype)
             #FIXME: do I cover all potential scan types?
             #static scan
             breakpoint()   
@@ -312,11 +313,11 @@ class Reduced():
                 run = True
 
             #step scans
-            elif (self.scantype=='mono' or self.scantype=='delay'):
+            elif (self.data.scantype=='mono' or self.data.scantype=='delay'):
                 print('step scan!')
-                if self.scantype=='mono':
+                if self.data.scantype=='mono':
                     scanvar = getattr(det,'mono')
-                elif self.scantype=='delay':
+                elif self.data.scantype=='delay':
                     scanvar = getattr(det,'delay')
                 if (np.nansum(onmask)+np.nansum(offmask))==0:
                     scanvar_bin, tmp_sum, tmp_mean, tmp_std = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='step')
@@ -325,11 +326,11 @@ class Reduced():
                     scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std = bin_data(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='step')
                 run =True     
             #fly scans
-            elif (self.scantype=='mono_fly' or self.scantype=='delay_fly'):    
+            elif (self.data.scantype=='mono_fly' or self.data.scantype=='delay_fly'):    
                 print('fly scan!')
-                if self.scantype=='delay_fly':
+                if self.data.scantype=='delay_fly':
                     scanvar = getattr(det,'delay')
-                elif self.scantype=='mono_fly':
+                elif self.data.scantype=='mono_fly':
                     scanvar = getattr(det,'mono')
                 if (np.nansum(onmask)+np.nansum(offmask))==0:
                     scanvar_bin, tmp_sum, tmp_mean, tmp_std = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='fly')

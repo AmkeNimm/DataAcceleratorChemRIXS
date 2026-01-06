@@ -99,35 +99,3 @@ class Detector():
             setattr(self.__class__, name, prop)
             prop.__set_name__(self.__class__, name)
 
-
-    # def process(self):
-    #     """
-    #     Overall function to process incoming data, this includes filtering 
-    #     on I0 and mismatches in data
-        
-    #     Parameters
-    #     ----------
-    #     rois : dictionary
-    #         Containing ROIs for different detectors.
-        
-
-    #     Notes
-    #     -----
-        
-    #     """
-
-    #     #TODO: how to well load this, hardcoding a file name may not be ideal...
-    #     with open('../roi_input.yml', 'r') as file:
-    #         rois = yaml.safe_load(file)
-
-    #     #TODO: implement warning if variable does not exist
-
-    #     if hasattr(self,'fim_0'):
-    #         self.fim0 = sum_channels(self.fim_0,rois['fim0'])
-    #     if hasattr(self,'fim_1'):
-    #         self.fim1 = sum_channels(self.fim_1,rois['fim1'])
-    #     if hasattr(self,'apds'):
-    #         self.apd = sum_channels(self.apds,rois['APDs'])
-
-    
-    

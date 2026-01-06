@@ -57,6 +57,8 @@ class Integrating():
         self.yaml = fyaml
         self.epics = epics
         self.run = run
+
+        print(run)
         
         for detector, det_spec_dict in self.yaml['int_detectors'].items():
             if detector in intgrp.keys():
@@ -82,7 +84,7 @@ class Integrating():
     def __getattr__(self, name):
         #This will create an error if detector is not in the small data file
         if name in self.yaml['int_detectors']:
-            raise KeyError(f'{name} is not in this file')
+            raise KeyError(f'{name} is not in this file')       
         return super().__getattribute__(name)
     
     def summing_channels(self):
@@ -175,7 +177,7 @@ class Integrating():
                     for i in np.arange(len(self.yaml['mono_calib'])):
                         mono_config = np.asarray(self.yaml['mono_calib'][i])
                         if np.logical_and((self.run>mono_config[0]),(self.run<mono_config[1])):
-                            mono_calib = mono_config[2:3]
+                            mono_calib = mono_config[2:4]
                     if len(mono_calib)==0:
                         print('mono is not calibrated for this run')
                         for detector in self.yaml['int_detectors']: 
@@ -189,6 +191,7 @@ class Integrating():
                             tmp = np.polyval(mono_calib,hrencoder)
                             premirror = get_premirror_pitch(self.epics['MONO_premirror_pitch'])
                             mono = mono_energy(tmp,premirror)
+                            # mono = np.polyval(self.yaml['mono_calib'],mono)
                             setattr(det, 'mono', mono)
                         elif self.scantype=='mono':
                             #FIXME: how do I here pull the scanvar 
@@ -196,6 +199,7 @@ class Integrating():
                             tmp = np.polyval(mono_calib,hrencoder)
                             premirror = get_premirror_pitch(self.epics['MONO_premirror_pitch'])
                             mono = mono_energy(tmp,premirror)
+                            # mono = np.polyval(self.yaml['mono_calib'],mono)
                             setattr(det, 'mono', mono)
                             # mono = np.polyval(self.yaml['mono_calib'],hrencoder)
                             # setattr(det, 'mono', mono)
@@ -213,6 +217,8 @@ class Integrating():
                 delay = intgrp[detector][delay_attr]
                 setattr(det, 'delay', delay)
         else:
-            print('scanvariable unknown')
+            raise KeyError('scanvariable is unkown, binning not possible')
+
+
 
             
