@@ -1,7 +1,10 @@
 
 import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 import os
+
+from functools import cached_property
 from pathlib import Path
 from chemrixs.utils import *
 from chemrixs.process import Reduced
@@ -73,7 +76,7 @@ class Average():
             self.norm = norm
 
         self.check_reduce()
-        self.average()
+        self.average
 
 
     def check_reduce(self):
@@ -86,10 +89,25 @@ class Average():
         
         return
     
+    @cached_property
     def average(self):
         print(self.proc_path)
         avg = avg_data(self.runs, self.proc_path)
 
+        return avg
+
+    def plot_2D(self):
+
+        fig,ax = plt.subplots(1,3)
+        ax[0].pcolor(self.average['axis_svls_off_mean'])
+        ax[1].pcolor(self.average['axis_svls_on_mean'])
+        ax[2].pcolor(self.average['axis_svls_on_mean']-self.average['axis_svls_on_mean'])
+
+        return fig
+
+    def plot_1D(self):
+        fig,ax =plt.subplots(1,1)
+        ax.plot()
     
 
 

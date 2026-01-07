@@ -225,9 +225,9 @@ def mono_energy(pitchG,pitchM2,stateG = 'LRG', fname='../mono_calib.yml'):
     return E
  
 
-def avg_data(runs, proc_folder):
+def avg_data(runs : list, proc_folder : str = '',proc_path : str = ''):
     avg = {}
-    with h5py.File(proc_folder+f'Run{runs[0]:04d}.h5','r') as tmp:
+    with h5py.File(proc_folder+f'{runs[0]:04d}.h5','r') as tmp:
         keys = list(tmp.keys())
         print(keys)
         for key in keys:
@@ -236,7 +236,7 @@ def avg_data(runs, proc_folder):
     i=0
     for run in runs:
         i=i+1
-        file = proc_folder+f'Run{run:04d}.h5'
+        file = proc_folder+f'{run:04d}.h5'
         # FIXME: 
         for key in keys:    
             with h5py.File(file,'r') as f:
