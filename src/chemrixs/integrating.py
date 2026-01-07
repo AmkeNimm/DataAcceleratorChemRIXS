@@ -217,7 +217,7 @@ class Integrating():
                 delay = intgrp[detector][delay_attr]
                 setattr(det, 'delay', delay)
         else:
-            raise KeyError('scanvariable is unkown, binning not possible')
+            print('scanvariable is unkown, binning not possible')
 
 
 

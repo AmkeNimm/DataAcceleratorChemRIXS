@@ -1,9 +1,9 @@
-from functools import cached_property
+# from functools import cached_property
 from pathlib import Path
 
 import h5py
-import yaml
-import contextlib
+# import yaml
+# import contextlib
 from chemrixs.utils import *
 from chemrixs.smalldata import SmallData
 import scipy.ndimage as ndimage
@@ -22,6 +22,23 @@ class Reduced():
 
     bgpath : str or Path
         The filename for a darkscan that can be used for background subtraction.
+
+    fyaml : str or Path
+        yaml file with settings for processing.
+
+    bgyaml : str or Path
+        yaml file with settings for processing the BG data.
+
+    save : bool
+        Boolean determining if the processed data should be saved.
+
+    scantype : str
+        Optional, determining the type of scan. If not given, this will be
+        determined by the data structure.
+
+    norm : bool
+        Boolean determining if data should be normalised by I0 or not
+        
 
     Notes
     -----
