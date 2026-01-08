@@ -10,17 +10,21 @@ import yaml
 from chemrixs.smalldata import SmallData
 
 # @pytest.fixture
-def get_test_file(type='undef'):
+def get_test_file(type='undef',yamltype='undef'):
 
-    testfile_dict = {'delay':'delay_scan_testfile_Run0000.h5',
-                     'mono':'mono_scan_testfile_Run0000.h5',
-                     'mono_fly':'mono_fly_testfile_Run0000.h5',
-                     'power':'waveplate_testfile_Run0000.h5',
-                     'undef':'testfile_Run0000.h5'}
+    testfile_dict = {'delay':'data/delay_scan_testfile_Run0000.h5',
+                     'mono':'data/mono_scan_testfile_Run0000.h5',
+                     'mono_fly':'data/mono_fly_testfile_Run0000.h5',
+                     'power':'data/waveplate_testfile_Run0000.h5',
+                     'svls_only': 'data/testfile_Run0000_SVLS.h5',
+                     'undef':'data/testfile_Run0000.h5'}
+    yamlfile_dict = {'SVLS_andordir_only': 'data/test_roi_input_SVLS_AndorDir.yml',
+                     'undef': 'data/test_roi_input.yml'
+    }
     
     # fname=str(Path(__file__).absolute().parent/'testfile_Run0000.h5')
     fname = str(Path(__file__).absolute().parent/testfile_dict[type])
-    fyaml = str(Path(__file__).absolute().parent/'test_roi_input.yml')
+    fyaml = str(Path(__file__).absolute().parent/yamlfile_dict[yamltype])
 
     return fname, fyaml    
 
@@ -95,5 +99,7 @@ def test_runinfo(type):
     data = SmallData(fname,fyaml)
     assert data.scantype==type
 
+
+#TODO: make test to check that scanvar is not only one value
 
 
