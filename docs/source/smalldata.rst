@@ -8,6 +8,6 @@ SmallData
    integrating
    singleshot
    detector
-
+   
 .. autoclass:: chemrixs.SmallData
    :members: 

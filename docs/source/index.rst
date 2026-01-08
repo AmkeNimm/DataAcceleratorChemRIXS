@@ -15,10 +15,15 @@ documentation for details.
    This project is under active development.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
    
    api-docs
+   smalldata
+   reduced
+   average
+
+
 
 
 
