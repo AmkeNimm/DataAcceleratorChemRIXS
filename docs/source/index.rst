@@ -19,10 +19,6 @@ documentation for details.
    :caption: Contents:
    
    api-docs
-   smalldata
-   reduced
-   average
-
 
 
 

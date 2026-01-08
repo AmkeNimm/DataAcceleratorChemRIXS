@@ -1,4 +1,11 @@
 
+Average
+=======
+
+.. autoclass:: chemrixs.Average
+   :members:
+
+
 Reduced
 =======
 
