@@ -229,7 +229,7 @@ def avg_data(runs : list, proc_folder : str = '',proc_path : str = ''):
     avg = {}
     with h5py.File(proc_folder+f'{runs[0]:04d}.h5','r') as tmp:
         keys = list(tmp.keys())
-        print(keys)
+        # print(keys)
         for key in keys:
             avg[key] = np.zeros(tmp[key].shape)
 
@@ -243,7 +243,7 @@ def avg_data(runs : list, proc_folder : str = '',proc_path : str = ''):
                 # print(f.keys())
                 if avg[key].shape==f[key].shape:
                     avg[key] = avg[key] + np.asarray(f[key])
-                    print(f[key])
+                    # print(f[key])
                 else:
                     print(f'Run {run} {key} shapes do not match')
             

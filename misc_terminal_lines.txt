@@ -6,3 +6,5 @@ pip install --no-deps -e . #installing the chemrixs package
 pytest --cov=chemrixs
 pytest --cov=chemrixs --cov-report=term-missing #with info which lines are missing
 pytest --cov=chemrixs --cov-report html # prints out html with marked red/green for uncovere/covered code
+pytest -k test_runinfo #only runs test function that contains 'test_runinfo'
+make html #run inside docs folder to run sphinx, all classes need to be added in docs'api_docs.rst'

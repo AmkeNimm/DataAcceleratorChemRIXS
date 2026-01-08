@@ -96,16 +96,44 @@ class Average():
 
         return avg
 
-    def plot_2D(self):
+    def plot_svls2D(self, calibrated=False,savefig=False,transparent=True,figsize=(8,12)):
+        if calibrated == True:
+            emi = emi
+        else:
+            emi = np.arange(self.average['axis_svls_off_mean'].shape[1])
 
-        fig,ax = plt.subplots(1,3)
-        ax[0].pcolor(self.average['axis_svls_off_mean'])
-        ax[1].pcolor(self.average['axis_svls_on_mean'])
-        ax[2].pcolor(self.average['axis_svls_on_mean']-self.average['axis_svls_on_mean'])
+        ddatmax = np.nanmax(self.average['axis_svls_on_mean'].T-self.average['axis_svls_off_mean'].T)
+ 
+        fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
+        ax[0].pcolor(self.average['scanvar_on'],emi,np.flip(self.average['axis_svls_off_mean'],axis=1).T,cmap = 'Reds')
+        ax[1].pcolor(self.average['scanvar_on'],emi,np.flip(self.average['axis_svls_on_mean'],axis=1).T,cmap = 'Reds')
+        ax[2].pcolor(self.average['scanvar_on'],emi,np.flip(self.average['axis_svls_on_mean'],axis=1).T-self.average['axis_svls_off_mean'].T,cmap = 'bwr',
+                     vmin=-ddatmax,vmax=ddatmax)
+
+        ax[0].set_xlabel('inc. energy (eV)')
+        ax[1].set_xlabel('inc. energy (eV)')
+        ax[2].set_xlabel('inc. energy (eV)')
+
+        ax[0].set_ylabel('emission (pixel)')
+
+        ax[0].set_title('laser off')
+        ax[1].set_title('laser on')
+        ax[2].set_title('difference')
+
+        ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
+
+        if savefig:
+            fig.savefig(f'figs/SVLS2D_{self.runs[0]}_{self.runs[-1]}.png',transparent=transparent,
+                        dpi=200, bbox_inches='tight')
 
         return fig
 
-    def plot_1D(self):
+    def plot_svls1D(self):
+        """
+        Plotting binned and averaged SVLS detector, collapsed on scanvar axis.
+        
+        :param self: Description
+        """
         fig,ax =plt.subplots(1,1)
         ax.plot()
     

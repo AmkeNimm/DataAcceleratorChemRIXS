@@ -6,7 +6,8 @@ expected_count: []
 
 #define binning
 bins: ['bin_edges', 
-        [392,402,40]] #['bin_width', 0.5e-12] #['Nbins', 15]
+        [521,530,40]] 
+        # [392,402,40]] #['bin_width', 0.5e-12] #['Nbins', 15]
 
 #define eventcodes for on and off
 evc: {on: 272, off: 273, any: 274}
@@ -74,7 +75,7 @@ andor_vls_dict: {
     # 'piranha': 'c_piranha_sum_full_area'}
 axis_svls_dict: {
     'count': 'count',
-    'full_area': 'droplet_dense_curve_corr_pj_ax_1_data',
+    'full_area': 'droplet_dense_curve_corr_pj_ax_1_data', #'curve_corr_pj_ax_1_data', #
     'eventcodes': 'timing_sum_eventcodes',
     'apds': 'det_crix_w8_sum_full_area',
     'fim_0': 'det_rix_fim0_sum_full_area',

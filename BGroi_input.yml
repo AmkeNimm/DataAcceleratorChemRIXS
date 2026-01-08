@@ -16,7 +16,7 @@ scanvar: {mono: 'mono_ev',
         delay: '',
         waveplate: 'lm2k2_inj_mp1_att1_wp1'}
 
-mono_calib: [-3.27082170e-03,  4.80858943e+02]
+mono_calib: [[0,500,-3.27082170e-03,  4.80858943e+02]]
 
 #Defining ROIs for the different detectors
 apd:   { channels: [7,8], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
@@ -67,7 +67,7 @@ andor_vls_dict: {
     # 'piranha': 'c_piranha_sum_full_area'}
 axis_svls_dict: {
     'count': 'count',
-    'full_area': 'droplet_dense_curve_corr_pj_ax_1_data',
+    'full_area': 'droplet_dense_curve_corr_pj_ax_1_data', #'curve_corr_pj_ax_1_data', #
     'eventcodes': 'timing_sum_eventcodes',
     #'apds': 'det_crix_w8_sum_full_area',
     'fim_0': 'det_rix_fim0_sum_full_area',
