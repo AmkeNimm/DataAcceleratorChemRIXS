@@ -67,7 +67,8 @@ class Detector():
         """
         def fget(self):
             if useDask:
-                return da.from_array(self.grp[data_set][()], chunks = chunks)
+                dat = da.from_array(self.grp[data_set], chunks = chunks)
+                return dat
             return self.grp[data_set][()]
         return fget
 
