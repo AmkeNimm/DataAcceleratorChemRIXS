@@ -47,7 +47,7 @@ class Detector():
         self.prop_factory(data_to_read, useDask, chunks)
         
         
-    def prop_set(self, data_set, useDask,chunks): #function that loads data from h5 group
+    def prop_set(self, data_set, useDask, chunks): #function that loads data from h5 group
         """
         Function that loads data from the h5 group.
 
@@ -65,9 +65,31 @@ class Detector():
             of data processing.
         
         """
+        self.chunks=chunks
         def fget(self):
+
             if useDask:
-                dat = da.from_array(self.grp[data_set], chunks = chunks)
+                MAX_CHUNK = self.chunks
+                
+                ds = self.grp[data_set]
+                print("type(ds):", type(ds))
+                print("is Dataset:", isinstance(ds, h5py.Dataset))
+                print("is Group:", isinstance(ds, h5py.Group))
+                print(ds.shape)
+
+                chunks = (min(MAX_CHUNK, len(ds)),) + tuple(
+                    min(MAX_CHUNK, dim) for dim in ds.shape[1:]
+                )
+
+                print("Chunks:", chunks)
+
+                dat = da.from_array(
+                    ds,
+                    chunks=chunks,
+                    lock = True
+                )
+                
+                print(data_set,dat.shape)
                 return dat
             return self.grp[data_set][()]
         return fget
@@ -97,6 +119,7 @@ class Detector():
         print('setting up properties')
         for name, dataset in data_to_read.items():    
             prop=cached_property(self.prop_set(dataset, useDask,chunks))
+            print('dataset prop',prop)
             setattr(self.__class__, name, prop)
             prop.__set_name__(self.__class__, name)
 

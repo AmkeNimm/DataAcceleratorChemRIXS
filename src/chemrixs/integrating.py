@@ -98,6 +98,7 @@ class Integrating():
 
         for detector in self.yaml['int_detectors']: 
             det = getattr(self,detector)
+            print(det)
             sum_channels(det, self.yaml)
             
             #'clearing cache'
@@ -133,7 +134,7 @@ class Integrating():
         '''
             
         for detector, det_spec_dict in self.yaml['int_detectors'].items(): 
-
+            useDask=det_spec_dict['useDask']
             det=getattr(self,detector)
 
             if len(self.yaml['expected_count']) == 0:
@@ -146,19 +147,34 @@ class Integrating():
             countmask = (det.count<expected_count+2)&(det.count>expected_count-2)
             # breakpoint()
             for at in self.yaml[det_spec_dict['attrdict']]:
+                # try:
                 a = getattr(det,at)
-                a = a[countmask]
-                setattr(det, at, a)
+                # except:
+                #     raise KeyError(f'{at} not saved under detector {det}')
+                if useDask:
+                    mask_nd = countmask.reshape((countmask.shape[0],) + (1,) * (a.ndim - 1))
+                    masked = a * mask_nd
+                else:
+                    masked = a[countmask]
+                setattr(det, at, masked)
         
             if (self.scantype=='delay' or self.scantype=='delay_fly'):
                 a = getattr(det,'delay')
-                a = a[countmask]
-                setattr(det, 'delay', a)
+                if useDask:
+                    mask_nd = countmask.reshape((countmask.shape[0],) + (1,) * (a.ndim - 1))
+                    masked = a * mask_nd
+                else:
+                    masked = a[countmask]
+                setattr(det, 'delay', masked)
 
             if (self.scantype=='mono' or self.scantype=='mono_fly'):
                 a = getattr(det,'mono')
-                a = a[countmask]
-                setattr(det, 'mono', a)
+                if useDask:
+                    mask_nd = countmask.reshape((countmask.shape[0],) + (1,) * (a.ndim - 1))
+                    masked = a * mask_nd
+                else:
+                    masked = a[countmask]
+                setattr(det, 'mono', masked)
 
     def get_scanvar(self,intgrp):
         if (self.scantype=='mono' or self.scantype=='mono_fly'):
