@@ -84,8 +84,10 @@ class Average():
             proc_path = self.proc_path + f'{run:04d}.h5'
             if os.path.isfile(proc_path) == False:
                 fname = self.raw_path + f'{run:04d}.h5'
-                Reduced(fname,self.bgpath,self.fyaml,self.bgyaml, 
+                tmp = Reduced(fname,self.bgpath,self.fyaml,self.bgyaml, 
                         save=True,scantype=self.scantype,norm=self.norm)
+                self.scantype = tmp.data.scantype
+
         
         return
     
@@ -96,7 +98,7 @@ class Average():
 
         return avg
 
-    def plot_svls2D(self, calibrated=False,savefig=False,transparent=True,figsize=(8,12)):
+    def plot_svls2D(self, calibrated=False,savefig=False,transparent=True,figsize=(12,8),scale=1):
         if calibrated == True:
             emi = emi
         else:
@@ -105,9 +107,11 @@ class Average():
         ddatmax = np.nanmax(self.average['axis_svls_on_mean'].T-self.average['axis_svls_off_mean'].T)
  
         fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
-        ax[0].pcolor(self.average['scanvar_on'],emi,np.flip(self.average['axis_svls_off_mean'],axis=1).T,cmap = 'Reds')
-        ax[1].pcolor(self.average['scanvar_on'],emi,np.flip(self.average['axis_svls_on_mean'],axis=1).T,cmap = 'Reds')
-        ax[2].pcolor(self.average['scanvar_on'],emi,np.flip(self.average['axis_svls_on_mean'],axis=1).T-self.average['axis_svls_off_mean'].T,cmap = 'bwr',
+        ax[0].pcolor(self.average['scanvar_on'],emi,np.flip(self.average['axis_svls_off_mean'],axis=1).T,cmap = 'Reds',
+                     vmin=0,vmax=np.nanmax(self.average['axis_svls_off_mean'])/scale)
+        ax[1].pcolor(self.average['scanvar_on'],emi,np.flip(self.average['axis_svls_on_mean'],axis=1).T,cmap = 'Reds',
+                     vmin=0,vmax=np.nanmax(self.average['axis_svls_on_mean'])/scale)
+        ax[2].pcolor(self.average['scanvar_on'],emi,np.flip(self.average['axis_svls_on_mean'],axis=1).T-np.flip(self.average['axis_svls_off_mean'],axis=1).T,cmap = 'bwr',
                      vmin=-ddatmax,vmax=ddatmax)
 
         ax[0].set_xlabel('inc. energy (eV)')
@@ -128,14 +132,27 @@ class Average():
 
         return fig
 
-    def plot_svls1D(self):
+    def plot_svls1D(self,savefig=False,transparent=True,figsize=(12,8)):
         """
         Plotting binned and averaged SVLS detector, collapsed on scanvar axis.
         
         :param self: Description
         """
-        fig,ax =plt.subplots(1,1)
-        ax.plot()
+        
+        fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
+        ax[0].plot(self.average['scanvar_off'],np.nanmean(self.average['axis_svls_off_mean'],axis=1))
+        ax[1].plot(self.average['scanvar_on'],np.nanmean(self.average['axis_svls_on_mean'],axis=1))
+        ax[2].plot(self.average['scanvar_on'],np.nanmean(self.average['axis_svls_on_mean']-self.average['axis_svls_off_mean'],axis=1))
+        if self.scantype=='mono_fly':
+            ax[0].set_xlabel('inc. energy (eV)')
+            ax[1].set_xlabel('inc. energy (eV)')
+            ax[2].set_xlabel('inc. energy (eV)')
+        elif self.scantype=='delay_fly':
+            ax[0].set_xlabel('delay (s)')
+            ax[1].set_xlabel('delay (s)')
+            ax[2].set_xlabel('delay (s)')
+        ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
+        
     
 
 
