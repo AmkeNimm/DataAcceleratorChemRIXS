@@ -179,6 +179,7 @@ class SmallData:
         # try:
         
         if 'scan' in self.__file.keys():   
+            print(self.__file['/scan'].keys())
             if self.yaml['scanvar']['mono'] in self.__file['/scan'].keys():
                 scantype = 'mono'
             elif self.yaml['scanvar']['delay'] in self.__file['/scan'].keys():
