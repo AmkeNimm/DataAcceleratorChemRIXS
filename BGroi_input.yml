@@ -30,7 +30,7 @@ svls: {roi: [680,720,100,150], offset_roi: []}  # first 2 values used both 2D an
 int_detectors: {
 #    'andor_dir': {'attrdict': andor_dir_dict, 'clsname': 'AndorDir', 'useDask': False, 'chunks':()},
     # 'andor_vls': {'attrdict': andor_vls_dict, 'clsname': 'AndorVLS', 'useDask': False, 'chunks':(), 'backgroundtype':'dark'},
-    'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks':(), 'backgroundtype':'dark'},
+    'axis_svls': {'attrdict': axis_svls_dict, 'clsname': 'AxisSVLS', 'useDask': False, 'chunks': (), 'backgroundtype':'dark'},
 }
 
 
@@ -67,9 +67,9 @@ andor_vls_dict: {
     # 'piranha': 'c_piranha_sum_full_area'}
 axis_svls_dict: {
     'count': 'count',
-    'full_area': 'droplet_dense_curve_corr_pj_ax_1_data', #'curve_corr_pj_ax_1_data', #
+    'full_area': 'droplet_dense_curve_corr_pj_ax_1_data', #'curve_corr_pj_ax_1_data', #'curve_corr_corrected_image', #
     'eventcodes': 'timing_sum_eventcodes',
-    #'apds': 'det_crix_w8_sum_full_area',
+    'apds': 'det_crix_w8_sum_full_area',
     'fim_0': 'det_rix_fim0_sum_full_area',
     'fim_1': 'det_rix_fim1_sum_full_area'}
     # 'mono_encoder': 'mono_hrencoder_sum_value'}
