@@ -1,5 +1,10 @@
 import numpy as np
 import h5py
+import dask.array as da
+import dask.dataframe as dd
+import random
+
+from scipy.optimize import curve_fit
 
 def sumchan_helper(raw_fims,rois):
     '''
@@ -15,12 +20,17 @@ def sumchan_helper(raw_fims,rois):
         as well as the channels that should be used for reduction.
         Defined in the config yaml file.
 
+    Returns
+    -------
+    fimsum : 1D array containing sum over ROI and channels
+
     '''
+    # raw_fims=raw_fims.compute_chunk_sizes()
     if raw_fims.ndim == 3:    
-        bg = np.mean(raw_fims[...,rois['bg_roi'][0]:rois['bg_roi'][1]],axis= -1)
-        bgf = raw_fims - bg[...,np.newaxis]
+        bg = (raw_fims[...,rois['bg_roi'][0]:rois['bg_roi'][1]]).mean(axis=-1)
+        # print(raw_fims.shape)
+        bgf = raw_fims - bg[...,None]
         fim_sum = np.zeros([bgf.shape[0],len(rois['channels'])])
-        # print(bgf.shape)
         i=0
         #TODO: is this for loop the most efficient way - probably yes, since ROIs 
         # may be channel dependent ; confirm channel numbers match
@@ -49,7 +59,7 @@ def sum_channels(obj,fyaml): #dict includes {fim0: fim_0,....}
     Parameters
     ----------
     obj : object
-        object containing fim or crixs data
+        detector object containing fim or crixs data
     channel_dict : dictionary
         dict containing list of which detectors to process, 
         and how the attribute should be called
@@ -61,20 +71,40 @@ def sum_channels(obj,fyaml): #dict includes {fim0: fim_0,....}
     
     for key in channel_dict: 
         #if we are parsing from the integrating class this is an array
-        try:
-            if hasattr(getattr(obj,key), "__len__"):
-                summed = sumchan_helper(getattr(obj,key), rois[channel_dict[key]]) 
-                setattr(obj, channel_dict[key], summed)
-            #if we are parsing from the singleshot class this is an object
-            #FIXME: implement option for getting channels from preproc or full area
-            else:
-                summed = sumchan_helper(getattr(getattr(obj,key),'preproc'),rois[channel_dict[key]]) 
-                setattr(obj, channel_dict[key], summed)
-        except:
-            print(f'{key} does not exits ')
+        # try:
+        a=getattr(obj,key)
+        # print(a)
+        if hasattr(getattr(obj,key), "__len__"):
+            summed = sumchan_helper(getattr(obj,key), rois[channel_dict[key]]) 
+            setattr(obj, channel_dict[key], summed)
+        #if we are parsing from the singleshot class this is an object
+        #FIXME: implement option for getting channels from preproc or full area
+        else:
+            summed = sumchan_helper(getattr(getattr(obj,key),'preproc'),rois[channel_dict[key]]) 
+            setattr(obj, channel_dict[key], summed)
+        # except:
+        #     print(f'{key} does not exits ')
 
 def normalise(dat, I0):
+    '''
+    Function to normalise a given signal to a given reference 
+    
+    Mostly normalisation of an n-dimensional detector signal by the X-ray intensities 
+
+    Parameters
+    ----------
+    dat : array
+        n-dimensional array with n e{1,2,3}, with one dimension being N = number of images
+    I0 : dictionary
+        1D array containing I0 for each corrected image
+
+    Returns
+    -------
+    norm : normalised detector array
+    '''
     #FIXME: not sure if I need to implement different cases for when dimensions are in a different order
+    # dat.compute_chunk_sizes()
+    # I0.compute_chunk_sizes()
     if dat.ndim == 1:
         norm = dat/I0
     elif dat.ndim == 2:
@@ -82,38 +112,79 @@ def normalise(dat, I0):
     elif dat.ndim == 3:
         norm = dat/I0[:,np.newaxis,np.newaxis]
     else:
-        raise ValueError('Dimension don not match for normalising detector')
+        raise ValueError('Dimension do not match for normalising detector')
     return norm
 
 
 def bin_data(data,bin_axis,bins,scantype='fly'):
+    '''
+    Function binning a given data set along a given binning variable
+    
+    Binning can be done for different scan types (fly or step scan), and independent of what the 
+    scanvariable is. Different ways of binning can be determined
+
+    Parameters
+    ----------
+    data : array
+        n-dimensional array with n e{1,2,3}, with one dimension being N = number of images
+    bin_axis : array
+        1xN array containing the values of the scanvariable for each image 
+    bins : list
+        bins[0] determines the type of binning ('Nbins','bin_width','bin_edges')
+        bin[1] defines for 
+            'Nbins': number of bins
+            'bin_width': the width of each bin
+            'bin_edges': [start value, end value, #steps]
+
+    Returns
+    -------
+    bin_centers: array
+        binned scanvariable 
+    binned_dat_sum : array
+        n D array containing the data summed per bin
+    binned_dat_mean : array
+        n D array containing the data averaged per bin
+    binned_dat_std : array
+        n D array containing the standard deviation of the data per bin
+    '''
     #FIXME: do I call this function for each detector somewhere else, or do I loop through the detectors here
     # for now writing this for an individual detector, do on and off stuff outside this funciton too
     bin_axis = bin_axis.squeeze()
-    print(bin_axis)
     if bin_axis.ndim > 1:
         raise ValueError('scanvar too many dimensions')
-    idx = np.argsort(bin_axis)
+    if False:
+        idx = da.argsort(bin_axis)
+    else:
+        idx = np.argsort(bin_axis)
+
+    #FIXME: for single shot we will need an approximate / chunked sort 
+
+    
     bin_axis = bin_axis[idx]
     data = data[idx]
 
     #Create bins depending on type of scan
     if scantype == 'fly':
+        print('fly)')
         if bins[0] == 'Nbins':
+            print('Nbins')
             bin_counts, bin_edges = np.histogram(bin_axis, bins=bins[1], density=False)
         elif bins[0] == 'bin_width':
+            print('bin_width')
             Nbins = int((np.max(bin_axis)-np.min(bin_axis))/bins[1])
             bin_counts, bin_edges = np.histogram(bin_axis, bins=Nbins, density=False)
         #FIXME: option for bins with equal number of data points
         elif  bins[0] == 'bin_edges':
+            print('bin_edges')
             bin_edges = np.linspace(float(bins[1][0]),float(bins[1][1]),int(bins[1][2]))
+            bin_counts, bin_edges1 = np.histogram(bin_axis, bin_edges, density=False)
 
 
         else:
             raise ValueError('binning type unclear')
     
         # print('bin_counts', len(bin_counts))
-        print('bin_edges', len(bin_edges))
+        # print('bin_edges', len(bin_edges))
         
         bin_widths = bin_edges[1:] - bin_edges[:-1]
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
@@ -123,7 +194,6 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
         bin_edges = scanvar
         bin_widths = bin_edges[1:] - bin_edges[:-1]
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-        # bin_counts = np.bincount(bin_axis)
 
     elif scantype == 'static':
         bin_centers = np.mean(bin_axis)
@@ -134,7 +204,7 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
     else:
         raise ValueError('scan type for binning not defined')
     bin_edges = np.asarray(bin_edges)
-    print(bin_edges)
+    # print(bin_edges)
     #FIXME: by using digitize are we excluding data points at both ends?
 
     ######
@@ -142,12 +212,12 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
     # |
     # V
     #######
-    print('bin_axis', np.min(bin_axis),bin_axis.max())
-    print('bin_edges',np.min(bin_edges),bin_edges.max())
-    print('bin_width', bin_widths)
+    # print('bin_axis', np.min(bin_axis),bin_axis.max())
+    # print('bin_edges',np.min(bin_edges),bin_edges.max())
+    # print('bin_width', bin_widths)
 
     inds = np.digitize(bin_axis,bin_edges)
-    print(inds)
+    # print(inds)
 
     if data.ndim == 1:
         binned_dat_sum  = np.zeros(bin_edges.shape[0])
@@ -170,7 +240,7 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
             binned_dat_std[i,:]  = np.nanstd(data[inds==i],0)
 
 
-    return bin_centers, binned_dat_sum[1:,:], binned_dat_mean[1:,:], binned_dat_std[1:,:]
+    return bin_centers, binned_dat_sum[1:,:], binned_dat_mean[1:,:], binned_dat_std[1:,:], bin_counts
 
 def myround(x, base=5):
     return base * np.round(x/base)
@@ -369,3 +439,180 @@ def calib_emi(mono, dat, end_points_el, w_calib_line=5, plot=True):
         
 
     return emi, [a,b]
+
+
+def gaussian_moments(x, y):
+    """
+    Fast Gaussian fit using moments.
+
+    Returns
+    -------
+    A     : amplitude
+    mu    : center
+    sigma : width
+    C     : offset
+    """
+
+    # estimate offset from edges
+    C = np.median(np.concatenate([y[:10], y[-10:]]))
+    y0 = y - C
+
+    # guard against bad curves
+    if np.all(y0 <= 0):
+        return np.nan, np.nan, np.nan, C
+
+    y0 = np.clip(y0, 0, None)
+
+    norm = np.sum(y0)
+    mu = np.sum(x * y0) / norm
+    sigma = np.sqrt(np.sum((x - mu)**2 * y0) / norm)
+    A = np.max(y0)
+
+    return A, mu, sigma, C
+
+
+def gaussian(x, A, mu, sigma, C):
+    return A * np.exp(-(x - mu)**2 / (2 * sigma**2)) + C
+
+def gaussian_linear(x, A, mu, sigma, C, D):
+    return A * np.exp(-(x - mu)**2 / (2 * sigma**2)) + (C + D * x)
+
+def asymmetric_gaussian(x, A, mu, sigma1, sigma2,C,D):
+    return np.where(x < x0,
+                    A * np.exp(-((x - mu)**2) / (2 * sigma1**2)),
+                    A * np.exp(-((x - mu)**2) / (2 * sigma2**2)))+D*x+C
+
+def gaussian_moments_linear(x, y):
+    """
+    Fast Gaussian fit using moments with linear baseline.
+
+    Returns
+    -------
+    A     : amplitude
+    mu    : center
+    sigma : width
+    C     : baseline intercept
+    D     : baseline slope
+    """
+
+    # estimate baseline from edges
+    n = min(10, len(x) // 2)
+    x_edges = np.concatenate([x[:n], x[-n:]])
+    y_edges = np.concatenate([y[:n], y[-n:]])
+
+    # linear fit to edges
+    D, C = np.polyfit(x_edges, y_edges, 1)
+
+    baseline = C + D * x
+    y0 = y - baseline
+
+    # guard against bad curves
+    if np.all(y0 <= 0):
+        return np.nan, np.nan, np.nan, C, D
+
+    y0 = np.clip(y0, 0, None)
+
+    norm = np.sum(y0)
+    mu = np.sum(x * y0) / norm
+    sigma = np.sqrt(np.sum((x - mu)**2 * y0) / norm)
+    A = np.max(y0)
+
+    return A, mu, sigma, C, D
+
+
+
+def fit_gaussian_fast(x, y, lb, ub):
+    p0 = gaussian_moments(x, y)
+    bounds = [lb, ub]
+
+    if np.any(np.isnan(p0[:3])):
+        return p0
+
+    try:
+        p0=np.asarray(p0)
+        p0[p0<lb]= lb[p0<lb]
+        p0[p0>ub]= ub[p0>ub]
+        popt, _ = curve_fit(
+            gaussian,
+            x,
+            y,
+            p0=p0,
+            bounds=bounds,
+            maxfev=2000
+        )
+        return popt
+    except RuntimeError:
+        return p0
+    
+
+def fit_gaussian_fast_linear(x, y, lb, ub):
+    tmp = gaussian_moments_linear(x, y)
+    p0 = [tmp[0],tmp[1],tmp[2],tmp[2],tmp[3],tmp[4]]
+    bounds = [lb, ub]
+
+    if np.any(np.isnan(p0[:3])):
+        return p0
+
+    try:
+        p0 = np.asarray(p0)
+        p0[p0 < lb] = lb[p0 < lb]
+        p0[p0 > ub] = ub[p0 > ub]
+
+        popt, _ = curve_fit(
+            # gaussian_linear,
+            asymmetric_gaussian, #(x, A, mu, sigma1, sigma2,C,D)
+            x,
+            y,
+            p0=p0,
+            bounds=bounds,
+            maxfev=3000
+        )
+        return popt
+    except RuntimeError:
+        return p0
+
+
+def reconst_svd(u,s,v,N):
+    
+    data_denoised = (u[:, :N] * s[:N]) @ v[:N, :]
+    return data_denoised
+
+def reconst_singlecomp(u,s,v,x):
+    component_x = s[x] * np.outer(u[:, x], v[x, :])
+    return component_x
+
+
+# LS Waveform SVD functions 
+def decomp_(waves,nevts):    
+    # randomly pick up nevts events
+    if nevts<waves.shape[0]:
+        idx = np.array(random.sample(range(0,waves.shape[0]),nevts))
+        # print(idx)
+    else:
+        idx = np.arange(waves.shape[0])
+    start,end = (0,waves.shape[1])  #which section of waveform to use for svd.  use to select out saturation region
+
+    #instead manually calculate svd by using the smaller lh sv.
+    s,u = np.linalg.eigh(np.dot(waves[idx,start:end],waves[idx,start:end].transpose()))
+    v = np.dot(np.linalg.pinv(u),waves[idx,start:end])
+
+ # get the real component of the eigenvector
+    temp = np.array([i/np.dot(i,i)**0.5 for i in v[:]])#normalizing
+    v = np.real(temp)
+    #print(s.shape,v.shape, np.flipud(s).shape, np.flipud(v).shape)
+    return np.flipud(v)[:1000],np.flipud(s)[:1000]
+
+
+def decomp_1d(vec_dark,val_dark,wfs,ROI_svd,neigs = 2):  # this function does pixel-resolved singular value decomposition
+    # ROI SVD 
+    #print(val_dark[:neigs].sum()/val_dark.sum())
+    target_1d = wfs
+    bg_mask = (wfs[0]*0+1).astype(bool)
+    bg_mask[ROI_svd[0]:ROI_svd[1]]=False 
+    signal_1d = target_1d/np.dot(np.dot(target_1d[:,bg_mask],np.linalg.pinv(vec_dark[:neigs][:,bg_mask])),vec_dark[:neigs])
+
+    return signal_1d[:,ROI_svd[0]:ROI_svd[1]]
+
+# v, s = decomp_(dat[loff],2000) #decomposition of BG data (dark)
+# sl = slice(0,-1)
+# traces = decomp_1d(v,s,dat[:,:][:],ROI) #all data only ROI
