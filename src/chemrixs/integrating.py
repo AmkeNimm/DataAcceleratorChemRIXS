@@ -144,7 +144,7 @@ class Integrating():
                     expected_count = st.mode(det.count, keepdims=False)[0]
             else:
                 expected_count = self.yaml['expected_count']
-            countmask = (det.count<expected_count+2)&(det.count>expected_count-2)
+            countmask = (det.count<expected_count+1)&(det.count>expected_count-1)
             # breakpoint()
             for at in self.yaml[det_spec_dict['attrdict']]:
                 # try:
@@ -224,13 +224,16 @@ class Integrating():
             if self.scantype=='delay':
                 delay_attr = self.yaml['scanvar']['delay']
             elif self.scantype=='delay_fly':
-                delay_attr = self.yaml['scanvar']['delay_fly']
+                delay_attr = self.yaml['scanvar']['delay']
             #FIXME: where is delay defined
             #np.logical_or(scan_var_name =='lxt',scan_var_name == 'lxt_ttc')
             for detector in self.yaml['int_detectors']: 
                 det = getattr(self,detector)
+                count = getattr(det,'count')
                 # countmask = getattr(det, 'countmask')
-                delay = intgrp[detector][delay_attr]
+                tmp = intgrp[detector][delay_attr][()]
+                delay = tmp.squeeze()/count.squeeze()
+                print(f'delay shape {delay.shape}')
                 setattr(det, 'delay', delay)
         else:
             print('scanvariable is unkown, binning not possible')
