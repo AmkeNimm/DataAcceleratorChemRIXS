@@ -310,15 +310,92 @@ def avg_data(runs : list, proc_folder : str = '',proc_path : str = ''):
         # FIXME: 
         for key in keys:    
             with h5py.File(file,'r') as f:
-                # print(f.keys())
                 if avg[key].shape==f[key].shape:
                     avg[key] = avg[key] + np.asarray(f[key])
                     # print(f[key])
                 else:
+                    #FIXME: Here implement stuff for stitching
                     print(f'Run {run} {key} shapes do not match')
             
     for key in keys:
         avg[key] = avg[key]/i
+    return avg
+
+def avg_data_count(runs : list, proc_folder : str = '',proc_path : str = ''):
+    avg = {}
+    with h5py.File(proc_folder+f'{runs[0]:04d}.h5','r') as tmp:
+        keys = list(tmp.keys())
+        if 'counts_on' in keys:
+            counts_on = np.zeros(tmp['counts_on'].shape)
+            counts_off = np.zeros(tmp['counts_off'].shape)
+            laser = True
+        else:
+            counts = np.zeros(tmp['counts'].shape)
+            laser = False
+
+        # print(keys)
+        for key in keys:
+            avg[key] = np.zeros(tmp[key].shape)
+
+    i=0
+    for run in runs:
+        i=i+1
+        file = proc_folder+f'{run:04d}.h5'
+
+        #load processed data
+        with h5py.File(file,'r') as f:
+            # define count
+            if laser:
+                count_on = np.asarray(f['counts_on'])
+                count_off = np.asarray(f['counts_off'])
+                laser = True
+            else:
+                count = np.asarray(f['counts'])
+
+            # do count-weighted averaging
+            for key in keys:
+                if laser:
+                    if 'on' in key:
+                        count = count_on
+                    elif 'off' in key:
+                        count = count_off
+                else:
+                    count = count
+
+                if avg[key].shape==f[key].shape:
+                    if len(avg[key].shape) == 1:
+                        avg[key] = avg[key] + np.asarray(f[key])*count
+                    else:
+                        avg[key] = avg[key] + np.asarray(f[key])*count[:,np.newaxis]
+                else:
+                    #FIXME: Here implement stuff for stitching
+                    print(f'Run {run} {key} shapes do not match')
+        # Sum counts per scanvar
+        if laser:
+            counts_on = counts_on + count_on
+            counts_off = counts_off + count_off
+            print(counts_off)
+
+        else:
+            counts = counts + count
+    # Divide by count per scanvar
+    for key in keys:
+        if laser:
+            if 'on' in key:
+                if len(avg[key].shape) == 1:
+                    avg[key] = avg[key]/counts_on
+                else:
+                    avg[key] = avg[key]/counts_on[:,np.newaxis]
+            elif 'off' in key:
+                if len(avg[key].shape) == 1:
+                    avg[key] = avg[key]/counts_off
+                else:
+                    avg[key] = avg[key]/counts_off[:,np.newaxis]
+        else:
+            if len(avg[key].shape) == 1:
+                avg[key] = avg[key]/counts
+            else:
+                avg[key] = avg[key]/counts[:,np.newaxis]
     return avg
     
 

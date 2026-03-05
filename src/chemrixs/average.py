@@ -102,7 +102,11 @@ class Average():
     @cached_property
     def average(self):
         print(self.proc_path)
-        avg = avg_data(self.runs, self.proc_path)
+        try:
+            avg = avg_data_count(self.runs, self.proc_path)
+        except:
+            print('not count averaged')
+            avg = avg_data(self.runs, self.proc_path)
 
         return avg
     
@@ -318,25 +322,25 @@ class Average():
             plt.colorbar(label='Intensity')
 
             # Draw the two points
-            # plt.scatter([mono[ind_x1], mono[ind_x2]], [px_y1, px_y2],
-            #             s=60, c='white', edgecolor='k')
+            plt.scatter([mono[ind_x1], mono[ind_x2]], [px_y1, px_y2],
+                        s=60, c='white', edgecolor='k')
 
             # Draw center and top/bottom edges
             x_line = np.linspace(mono[ix_start], mono[ix_end], 200)
             y_center = m * x_line + c
             y_top = y_center + half_w
             y_bot = y_center - half_w
-            # plt.plot(x_line, y_center, 'w--', lw=1.5, color='k',label='initial guess')
-            # plt.plot(x_line, y_top,    'w-',  lw=1.0, alpha=0.8,color='k')
-            # plt.plot(x_line, y_bot,    'w-',  lw=1.0, alpha=0.8,color='k')
+            plt.plot(x_line, y_center, 'w--', lw=1.5, color='k',label='initial guess')
+            plt.plot(x_line, y_top,    'w-',  lw=1.0, alpha=0.8,color='k')
+            plt.plot(x_line, y_bot,    'w-',  lw=1.0, alpha=0.8,color='k')
 
             # Scatter maxima used for the fit
             plt.scatter(x_samples, ypix_at_max, s=20, c='yellow', edgecolor='k')
 
             # Plot fitted calibration line (x vs pixel)
             ypix = np.arange(ny)
-            # plt.plot(np.polyval([a, b], ypix), ypix, 'r-', lw=2,
-            #          label=f'fit: mono = {a:.6g} * pixel + {b:.6g}')
+            plt.plot(np.polyval([a, b], ypix), ypix, 'r-', lw=2,
+                     label=f'fit: mono = {a:.6g} * pixel + {b:.6g}')
             plt.xlim(mono[0],mono[-1])
             plt.xlabel('Energy (mono)')
             plt.ylabel('Pixel')
@@ -354,10 +358,20 @@ class Average():
         }
         return calibrated_axis, (a, b), details
     
-    def emi_calibration(self, p1, p2, width_pixels = 10, plot_on = True):
+    def emi_calibration(self, p1, p2, width_pixels = 10, plot_on = True, use = 'on'):
+        if use == 'on':
+            mono = self.average['scanvar_on']
+            rixs = self.average['axis_svls_on_mean']
+        elif use == 'off':
+            mono = self.average['scanvar_off']
+            rixs = self.average['axis_svls_off_mean']
+        else:
+            mono = self.average['scanvar']
+            rixs = self.average['axis_svls_mean']
+
         calibrated_axis, (a, b), details = self.elastic_calibrate_from_two_points(
-                                    self.average['scanvar_off'],
-                                    self.average['axis_svls_off_mean'],
+                                    mono,
+                                    rixs,
                                     p1, p2,
                                     width_pixels=width_pixels,
                                     plot_on=plot_on
