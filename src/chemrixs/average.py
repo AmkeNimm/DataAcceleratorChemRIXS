@@ -191,6 +191,13 @@ class Average():
         
         mono_on, E_trans_on, data_trans_on = emi2ET(self.average['scanvar_on'],emi,self.average['axis_svls_on_mean'],.2)
         mono_off, E_trans_off, data_trans_off = emi2ET(self.average['scanvar_off'],emi,self.average['axis_svls_off_mean'],.2)
+
+        self.average['mono_on'] = mono_on
+        self.average['mono_off'] = mono_off
+        self.average['E_trans_on'] = E_trans_on
+        self.average['E_trans_off'] = E_trans_off
+        self.average['data_trans_on'] = data_trans_on
+        self.average['data_trans_off'] = data_trans_off
             
 
         ddatmax = np.nanmax(self.average['axis_svls_on_mean'].T-self.average['axis_svls_off_mean'].T)
@@ -376,6 +383,19 @@ class Average():
                                     width_pixels=width_pixels,
                                     plot_on=plot_on
                                  )
+        self.average['emi'] = calibrated_axis
         return calibrated_axis, (a, b), details
+
+    def save_avg(self):
+        print('saving data')
+        runs = self.runs
+        output = h5py.File(f'./avg/Run{runs[0]:04d}to{runs[-1]:04d}.h5','w')
+        keys = self.average.keys()
+
+        for key in keys:
+            output.create_dataset(key,dtype='f',data=self.average[key])
+
+        output.close()
+
 
     
