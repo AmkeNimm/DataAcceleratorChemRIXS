@@ -86,6 +86,13 @@ class Average():
         self.check_reduce()
         self.average
 
+        if 'on' in list(self.average.keys())[0]:
+            self.laser = True
+        elif 'off' in list(self.average.keys())[0]:
+            self.laser = True
+        else:
+            self.laser = False
+
 
     def check_reduce(self):
         for run in self.runs:
@@ -111,7 +118,10 @@ class Average():
         return avg
     
     def get_emi(self):
-        px = np.arange(self.average['axis_svls_off_mean'].shape[1])
+        if self.laser:
+            px = np.arange(self.average['axis_svls_off_mean'].shape[1])
+        else:
+            px = np.arange(self.average['axis_svls_mean'].shape[1])
 
         for i in np.arange(len(self.yaml['emi_calib'])):
             emi_config = np.asarray(self.yaml['emi_calib'][i])
@@ -122,38 +132,64 @@ class Average():
         return emi
 
     def plot_svls2D(self, calibrated=True,savefig=False,transparent=True,figsize=(12,8),scale=1):
-        if calibrated == True:
-            emi = self.get_emi()
-            self.average['E_emi'] = emi
+
+
+        if self.laser:
+            if calibrated == True:
+                emi = self.get_emi()
+                self.average['E_emi'] = emi
+            else:
+                print('emission is not calibrated')
+                emi = np.arange(self.average['axis_svls_off_mean'].shape[1])
+
+            ddatmax = np.nanmax(self.average['axis_svls_on_mean'].T-self.average['axis_svls_off_mean'].T)
+    
+            fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
+            ax[0].pcolor(self.average['scanvar_on'],emi,(self.average['axis_svls_off_mean']).T,cmap = 'Reds',
+                        vmin=0,vmax=np.nanmax(self.average['axis_svls_off_mean'])/scale)
+            ax[1].pcolor(self.average['scanvar_on'],emi,(self.average['axis_svls_on_mean']).T,cmap = 'Reds',
+                        vmin=0,vmax=np.nanmax(self.average['axis_svls_on_mean'])/scale)
+            ax[2].pcolor(self.average['scanvar_on'],emi,(self.average['axis_svls_on_mean']).T-(self.average['axis_svls_off_mean']).T,cmap = 'bwr',
+                        vmin=-ddatmax,vmax=ddatmax)
+
+            ax[0].set_xlabel('inc. energy (eV)')
+            ax[1].set_xlabel('inc. energy (eV)')
+            ax[2].set_xlabel('inc. energy (eV)')
+
+            if calibrated == True:
+                ax[0].set_ylabel('emission (pixel)')
+            else:
+                ax[0].set_ylabel('emission (pixel)')
+
+            ax[0].set_title('laser off')
+            ax[1].set_title('laser on')
+            ax[2].set_title('difference')
+
+            ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
+            ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
         else:
-            print('emission is not calibrated')
-            emi = np.arange(self.average['axis_svls_off_mean'].shape[1])
+            if calibrated == True:
+                emi = self.get_emi()
+                self.average['E_emi'] = emi
+            else:
+                print('emission is not calibrated')
+                emi = np.arange(self.average['axis_svls_mean'].shape[1])
 
-        ddatmax = np.nanmax(self.average['axis_svls_on_mean'].T-self.average['axis_svls_off_mean'].T)
- 
-        fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
-        ax[0].pcolor(self.average['scanvar_on'],emi,(self.average['axis_svls_off_mean']).T,cmap = 'Reds',
-                     vmin=0,vmax=np.nanmax(self.average['axis_svls_off_mean'])/scale)
-        ax[1].pcolor(self.average['scanvar_on'],emi,(self.average['axis_svls_on_mean']).T,cmap = 'Reds',
-                     vmin=0,vmax=np.nanmax(self.average['axis_svls_on_mean'])/scale)
-        ax[2].pcolor(self.average['scanvar_on'],emi,(self.average['axis_svls_on_mean']).T-(self.average['axis_svls_off_mean']).T,cmap = 'bwr',
-                     vmin=-ddatmax,vmax=ddatmax)
+            datmax = np.nanmax(self.average['axis_svls_mean'].T)
+    
+            fig,ax = plt.subplots(1,1,sharex=True, sharey=True,figsize=figsize)
+            ax.pcolor(self.average['scanvar'],emi,(self.average['axis_svls_mean']).T,cmap = 'Reds',
+                        vmin=0,vmax=np.nanmax(self.average['axis_svls_mean'])/scale)
 
-        ax[0].set_xlabel('inc. energy (eV)')
-        ax[1].set_xlabel('inc. energy (eV)')
-        ax[2].set_xlabel('inc. energy (eV)')
+            ax.set_xlabel('inc. energy (eV)')
 
-        if calibrated == True:
-            ax[0].set_ylabel('emission (pixel)')
-        else:
-            ax[0].set_ylabel('emission (pixel)')
+            if calibrated == True:
+                ax.set_ylabel('emission (pixel)')
+            else:
+                ax.set_ylabel('emission (pixel)')
 
-        ax[0].set_title('laser off')
-        ax[1].set_title('laser on')
-        ax[2].set_title('difference')
-
-        ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
-        ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
+            ax.set_xlim([np.nanmin(self.average['scanvar']),np.nanmax(self.average['scanvar'])])
+            ax.set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
 
         if savefig:
             fig.savefig(f'figs/SVLS2D_{self.runs[0]}_{self.runs[-1]}.png',transparent=transparent,
