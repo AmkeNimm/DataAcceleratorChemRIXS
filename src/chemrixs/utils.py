@@ -191,6 +191,7 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
         
     elif scantype == 'step':
         scanvar,bin_counts = np.unique(bin_axis,return_counts=True)
+        print(f'scanvar in bin_data {len(scanvar)}')
         bin_edges = scanvar
         bin_widths = bin_edges[1:] - bin_edges[:-1]
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
@@ -235,7 +236,7 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
     # bin_counts =np.append(1,bin_counts[:])
     for i in np.arange(len(bin_edges)):
         if not sum((inds==i))==0:
-            # binned_dat_sum[i,:]  = np.nansum(data[inds==i],0)/bin_counts[i]
+            binned_dat_sum[i,:]  = np.nansum(data[inds==i],0)#/bin_counts[i]
             binned_dat_mean[i,:] = np.nanmean(data[inds==i],0)
             binned_dat_std[i,:]  = np.nanstd(data[inds==i],0)
 
@@ -321,6 +322,10 @@ def avg_data(runs : list, proc_folder : str = '',proc_path : str = ''):
         avg[key] = avg[key]/i
     return avg
 
+# ### **Uncertainty Formula for unweighted Average**:
+# [\sigma_{\bar{x}} = \frac{1}{\sqrt{N}} \sqrt{\sum_{i=1}^{N} \sigma_i^2}]
+   
+
 def avg_data_count(runs : list, proc_folder : str = '',proc_path : str = ''):
     avg = {}
     with h5py.File(proc_folder+f'{runs[0]:04d}.h5','r') as tmp:
@@ -397,7 +402,21 @@ def avg_data_count(runs : list, proc_folder : str = '',proc_path : str = ''):
             else:
                 avg[key] = avg[key]/counts[:,np.newaxis]
     return avg
-    
+
+#FIXME
+
+# ### **Uncertainty Formula for Weighted Average**:
+
+# [
+# \sigma_{\bar{x}*{\text{w}}} = \sqrt{\frac{1}{\sum*{i=1}^{N} w_i^2} \sum_{i=1}^{N} w_i^2 \sigma_i^2}
+# ]
+
+# Where:
+
+# * ( \sigma_{\bar{x}_{\text{w}}} ) is the uncertainty in the weighted average.
+# * ( w_i ) are the weights.
+# * ( \sigma_i ) are the individual uncertainties for each measurement.
+
 
 def pixel2emi(pixel, dat, mono=[], calib=[], points=[], w_calib_line=10, plot=True):
     if calib == []:
@@ -693,3 +712,193 @@ def decomp_1d(vec_dark,val_dark,wfs,ROI_svd,neigs = 2):  # this function does pi
 # v, s = decomp_(dat[loff],2000) #decomposition of BG data (dark)
 # sl = slice(0,-1)
 # traces = decomp_1d(v,s,dat[:,:][:],ROI) #all data only ROI
+
+
+
+def standard_error_IO(data_matrix):
+    '''
+    Function to determine the standard error for a distribution with on and off shots and varying intensity of on.
+
+    An example is the SVLS detector after dropletting where each pixel has a value of either 0 or several 100s ADUs
+
+    Parameters
+    ----------
+    data_matrix : float
+    2D matrix containing the raw data with data_matrix.shape[0] is the number of shots
+
+    Returns
+    -------
+    uncertainty_sum : float
+    Array containing the standard error for the sum of all values in bin
+
+    datsum : float
+    Array containing the sum of all values in bin
+
+    standard_error_mean : float
+    Array containing the standard error for the mean of all values in bin
+
+    datmean : float
+    Array containing the mean of all values in bin
+
+    '''
+    # Number of shots (N)
+    N = data_matrix.shape[0]
+
+    # Determine p_on (proportion of non-zero values for each pixel)
+    p_on = np.nansum(data_matrix > 0, axis=0) / N
+
+    # Determine V_on_mean (mean of non-zero values for each pixel)
+    V_on_mean = np.divide(
+                    np.nansum(data_matrix, axis=0),
+                    np.nansum(data_matrix > 0, axis=0),
+                    out=np.zeros_like(np.nansum(data_matrix, axis=0), dtype=float),
+                    where=np.nansum(data_matrix > 0, axis=0) != 0
+                    )
+
+    # Determine V_on_std (standard deviation of non-zero values for each pixel)
+    V_on_std = np.nanstd(data_matrix * (data_matrix > 0), axis=0)
+
+    # Calculate the variance for each pixel (row)
+    variance_signal = p_on * (V_on_std**2 + V_on_mean**2)
+
+    # # Standard error of the mean for each pixel
+    standard_error_mean = np.sqrt(variance_signal) / np.sqrt(N) #if N shots is 0 we got a different problem
+
+    # Uncertainty in the total sum for each pixel
+    uncertainty_sum = np.sqrt(N) * np.sqrt(variance_signal)
+
+    datsum = np.nansum(data_matrix,axis=0)
+
+    datmean = np.nanmean(data_matrix,axis=0)
+
+    return datsum, uncertainty_sum, datmean, standard_error_mean
+
+
+
+def bin_svls(data,bin_axis,bins,scantype='fly'):
+    '''
+    Function binning a given data set along a given binning variable
+    
+    Binning can be done for different scan types (fly or step scan), and independent of what the 
+    scanvariable is. Different ways of binning can be determined
+
+    Parameters
+    ----------
+    data : array
+        n-dimensional array with n e{1,2,3}, with one dimension being N = number of images
+    bin_axis : array
+        1xN array containing the values of the scanvariable for each image 
+    bins : list
+        bins[0] determines the type of binning ('Nbins','bin_width','bin_edges')
+        bin[1] defines for 
+            'Nbins': number of bins
+            'bin_width': the width of each bin
+            'bin_edges': [start value, end value, #steps]
+
+    Returns
+    -------
+    bin_centers: array
+        binned scanvariable 
+    binned_dat_sum : array
+        n D array containing the data summed per bin
+    binned_dat_mean : array
+        n D array containing the data averaged per bin
+    binned_dat_std : array
+        n D array containing the standard deviation of the data per bin
+    '''
+    #FIXME: do I call this function for each detector somewhere else, or do I loop through the detectors here
+    # for now writing this for an individual detector, do on and off stuff outside this funciton too
+    bin_axis = bin_axis.squeeze()
+    if bin_axis.ndim > 1:
+        raise ValueError('scanvar too many dimensions')
+    if False:
+        idx = da.argsort(bin_axis)
+    else:
+        idx = np.argsort(bin_axis)
+
+    #FIXME: for single shot we will need an approximate / chunked sort 
+
+    
+    bin_axis = bin_axis[idx]
+    data = data[idx]
+
+    #Create bins depending on type of scan
+    if scantype == 'fly':
+        print('fly)')
+        if bins[0] == 'Nbins':
+            print('Nbins')
+            bin_counts, bin_edges = np.histogram(bin_axis, bins=bins[1], density=False)
+        elif bins[0] == 'bin_width':
+            print('bin_width')
+            Nbins = int((np.max(bin_axis)-np.min(bin_axis))/bins[1])
+            bin_counts, bin_edges = np.histogram(bin_axis, bins=Nbins, density=False)
+        #FIXME: option for bins with equal number of data points
+        elif  bins[0] == 'bin_edges':
+            print('bin_edges')
+            bin_edges = np.linspace(float(bins[1][0]),float(bins[1][1]),int(bins[1][2]))
+            bin_counts, bin_edges1 = np.histogram(bin_axis, bin_edges, density=False)
+
+
+        else:
+            raise ValueError('binning type unclear')
+    
+        # print('bin_counts', len(bin_counts))
+        # print('bin_edges', len(bin_edges))
+        
+        bin_widths = bin_edges[1:] - bin_edges[:-1]
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        
+    elif scantype == 'step':
+        scanvar,bin_counts = np.unique(bin_axis,return_counts=True)
+        print(f'scanvar in bin_data {len(scanvar)}')
+        bin_edges = scanvar
+        bin_widths = bin_edges[1:] - bin_edges[:-1]
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    elif scantype == 'static':
+        bin_centers = np.mean(bin_axis)
+        bin_edges = [np.mean(bin_axis)]
+        bin_counts = len(bin_axis)
+        bin_widths = bin_edges[1:] - bin_edges[:-1]
+         
+    else:
+        raise ValueError('scan type for binning not defined')
+    bin_edges = np.asarray(bin_edges)
+    # print(bin_edges)
+    #FIXME: by using digitize are we excluding data points at both ends?
+
+    ######
+    #FIXME: does not seem to be working for delay scans
+    # |
+    # V
+    #######
+    # print('bin_axis', np.min(bin_axis),bin_axis.max())
+    # print('bin_edges',np.min(bin_edges),bin_edges.max())
+    # print('bin_width', bin_widths)
+
+    inds = np.digitize(bin_axis,bin_edges)
+    # print(inds)
+
+    if data.ndim == 1:
+        binned_dat_sum  = np.zeros(bin_edges.shape[0])
+        binned_dat_sumerr  = np.zeros(bin_edges.shape[0])
+        binned_dat_mean = np.zeros(bin_edges.shape[0])
+        binned_dat_std  = np.zeros(bin_edges.shape[0])
+        
+    elif data.ndim == 2:
+        binned_dat_sum  = np.zeros([bin_edges.shape[0],data.shape[1]])
+        binned_dat_sumerr  = np.zeros([bin_edges.shape[0],data.shape[1]])
+        binned_dat_mean = np.zeros([bin_edges.shape[0],data.shape[1]])
+        binned_dat_std  = np.zeros([bin_edges.shape[0],data.shape[1]])
+    else:
+        raise ValueError('Detector shape not known')
+    #FIXME: normalisation by bin counts missing
+    # print('bin_counts',bin_counts)
+    # bin_counts =np.append(1,bin_counts[:])
+    for i in np.arange(len(bin_edges)):
+        if not sum((inds==i))==0:
+            binned_dat_sum[i,:], binned_dat_sumerr[i,:], binned_dat_mean[i,:], binned_dat_std[i,:]  = standard_error_IO(data[inds==i])  #/bin_counts[i]
+        
+
+    return bin_centers, binned_dat_sum[1:,:], binned_dat_sumerr[1:,:], binned_dat_mean[1:,:], binned_dat_std[1:,:], bin_counts
+

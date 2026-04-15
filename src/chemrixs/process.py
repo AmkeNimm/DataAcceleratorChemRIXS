@@ -338,13 +338,22 @@ class Reduced():
                 print('step scan!')
                 if self.data.scantype=='mono':
                     scanvar = getattr(det,'mono')
+                    print(f'scanvar {len(scanvar)}')
                 elif self.data.scantype=='delay':
                     scanvar = getattr(det,'delay')
                 if (np.nansum(onmask)+np.nansum(offmask))==0:
-                    scanvar_bin, tmp_sum, tmp_mean, tmp_std, counts = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='step')
+                    if detector == 'axis_svls':
+                        scanvar_bin, tmp_sum, tmp_sumerr, tmp_mean, tmp_std, counts = bin_svls(norm,scanvar,bins=self.data.yaml['bins'],scantype='step')
+                    else:
+                        scanvar_bin, tmp_sum, tmp_mean, tmp_std, counts = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='step')
                 else:
-                    scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std, counts_on = bin_data(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='step')
-                    scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std, counts_off = bin_data(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='step')
+                    if detector == 'axis_svls':
+                        scanvar_on, tmp_on_sum, tmp_on_sumerr, tmp_on_mean, tmp_on_std, counts_on = bin_svls(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='step')
+                        scanvar_off, tmp_off_sum, tmp_off_sumerr, tmp_off_mean, tmp_off_std, counts_off = bin_svls(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='step')
+                    else:
+                        scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std, counts_on = bin_data(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='step')
+                        scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std, counts_off = bin_data(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='step')
+                    
                 run =True     
             #fly scans
             elif (self.data.scantype=='mono_fly' or self.data.scantype=='delay_fly'):    
@@ -353,8 +362,8 @@ class Reduced():
                     scanvar = getattr(det,'delay')
                     if self.data.yaml['TT_corr']['bool']:
                         tt_corr=np.loadtxt(f'proc/leading_edge_{self.data.run}.txt')
-                        scanvar_on = (scanvar[onmask]).squeeze() + (tt_corr-self.data.yaml['TT_corr']['offset'])*5*1e-15 #add pixel converted to s
-                        scanvar_off = (scanvar[offmask]).squeeze() + (np.mean(tt_corr)-self.data.yaml['TT_corr']['offset'])*5*1e-15 #no TT correction for laser off shots but we wanna make sure the scan axis still matches
+                        scanvar_on = (scanvar[onmask]).squeeze() - (tt_corr-self.data.yaml['TT_corr']['offset'])*5*1e-15 #add pixel converted to s
+                        scanvar_off = (scanvar[offmask]).squeeze() - (np.mean(tt_corr)-self.data.yaml['TT_corr']['offset'])*5*1e-15 #no TT correction for laser off shots but we wanna make sure the scan axis still matches
                         print('corrected delay')
                     else:
                         scanvar_on = (scanvar[onmask]).squeeze()
@@ -367,7 +376,10 @@ class Reduced():
                     scanvar_off = (scanvar[offmask]).squeeze()
                 if (np.nansum(onmask)+np.nansum(offmask))==0:
                     print('no laser on')
-                    scanvar_bin, tmp_sum, tmp_mean, tmp_std, counts = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='fly')
+                    if detector == 'axis_svls':
+                        scanvar_bin, tmp_sum, tmp_sumerr, tmp_mean, tmp_std, counts = bin_svls(norm,scanvar,bins=self.data.yaml['bins'],scantype='fly')
+                    else:
+                        scanvar_bin, tmp_sum, tmp_mean, tmp_std, counts = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='fly')
                 else:
                     
                     # breakpoint() 
@@ -378,8 +390,13 @@ class Reduced():
                     # scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std = bin_data(norm_on,scanvar_on,bins=self.data.yaml['bins'],scantype='fly')
                     # scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std = bin_data(norm_off,scanvar_off,bins=self.data.yaml['bins'],scantype='fly')
 
-                    scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std, counts_on = bin_data(norm_on,scanvar_on,bins=self.data.yaml['bins'],scantype='fly')
-                    scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std, counts_off = bin_data(norm_off,scanvar_off,bins=self.data.yaml['bins'],scantype='fly')
+                    if detector == 'axis_svls':
+                        scanvar_on, tmp_on_sum, tmp_on_sumerr, tmp_on_mean, tmp_on_std, counts_on = bin_svls(norm_on,scanvar_on,bins=self.data.yaml['bins'],scantype='fly')
+                        scanvar_off, tmp_off_sum, tmp_off_sumerr, tmp_off_mean, tmp_off_std, counts_off = bin_svls(norm_off,scanvar_off,bins=self.data.yaml['bins'],scantype='fly')
+
+                    else:
+                        scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std, counts_on = bin_data(norm_on,scanvar_on,bins=self.data.yaml['bins'],scantype='fly')
+                        scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std, counts_off = bin_data(norm_off,scanvar_off,bins=self.data.yaml['bins'],scantype='fly')
    
    
                 run =True
@@ -394,6 +411,7 @@ class Reduced():
                 if (np.nansum(onmask)+np.nansum(offmask))==0:
                     setattr(self,detector+'_sum',tmp_sum)
                     setattr(self,detector+'_mean',tmp_mean)
+                    setattr(self,detector+'_std',tmp_std)
                     setattr(self,'scanvar',scanvar_bin)
                     setattr(self,'counts',counts)
 
