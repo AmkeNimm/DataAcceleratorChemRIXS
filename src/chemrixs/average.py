@@ -201,23 +201,34 @@ class Average():
         """
         Plotting binned and averaged SVLS detector, collapsed on scanvar axis.
         
-        :param self: Description
-        """
+        Paramters
+        ---------
         
-        fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
-        ax[0].plot(self.average['scanvar_off'],np.nanmean(self.average['axis_svls_off_mean'],axis=1))
-        ax[1].plot(self.average['scanvar_on'],np.nanmean(self.average['axis_svls_on_mean'],axis=1))
-        ax[2].plot(self.average['scanvar_on'],np.nanmean(self.average['axis_svls_on_mean']-self.average['axis_svls_off_mean'],axis=1))
-        if self.scantype=='mono_fly':
-            ax[0].set_xlabel('inc. energy (eV)')
-            ax[1].set_xlabel('inc. energy (eV)')
-            ax[2].set_xlabel('inc. energy (eV)')
-        elif self.scantype=='delay_fly':
-            ax[0].set_xlabel('delay (s)')
-            ax[1].set_xlabel('delay (s)')
-            ax[2].set_xlabel('delay (s)')
-        ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
-        ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
+        """
+        if self.laser == True:
+            fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
+            ax[0].plot(self.average['scanvar_off'],np.nanmean(self.average['axis_svls_off_mean'],axis=1))
+            ax[1].plot(self.average['scanvar_on'],np.nanmean(self.average['axis_svls_on_mean'],axis=1))
+            ax[2].plot(self.average['scanvar_on'],np.nanmean(self.average['axis_svls_on_mean']-self.average['axis_svls_off_mean'],axis=1))
+            if self.scantype=='mono_fly':
+                ax[0].set_xlabel('inc. energy (eV)')
+                ax[1].set_xlabel('inc. energy (eV)')
+                ax[2].set_xlabel('inc. energy (eV)')
+            elif self.scantype=='delay_fly':
+                ax[0].set_xlabel('delay (s)')
+                ax[1].set_xlabel('delay (s)')
+                ax[2].set_xlabel('delay (s)')
+            ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
+            ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
+        else:
+            fig,ax = plt.subplots(1,1,figsize=figsize)
+            ax.plot(self.average['scanvar'],np.nanmean(self.average['axis_svls_mean'],axis=1))
+            if self.scantype=='mono_fly':
+                ax.set_xlabel('inc. energy (eV)')
+            elif self.scantype=='delay_fly':
+                ax.set_xlabel('delay (s)')
+            ax.set_xlim([np.nanmin(self.average['scanvar']),np.nanmax(self.average['scanvar'])])
+            ax.set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
     
     def plot_svls2D_ET(self, savefig=False,transparent=True,figsize=(12,8),scale=1):
         try:
@@ -432,6 +443,21 @@ class Average():
             output.create_dataset(key,dtype='f',data=self.average[key])
 
         output.close()
+
+
+
+# ### **Uncertainty Formula for Weighted Average**:
+
+# [
+# \sigma_{\bar{x}*{\text{w}}} = \sqrt{\frac{1}{\sum*{i=1}^{N} w_i^2} \sum_{i=1}^{N} w_i^2 \sigma_i^2}
+# ]
+
+# Where:
+
+# * ( \sigma_{\bar{x}_{\text{w}}} ) is the uncertainty in the weighted average.
+# * ( w_i ) are the weights.
+# * ( \sigma_i ) are the individual uncertainties for each measurement.
+
 
 
     
