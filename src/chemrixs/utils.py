@@ -429,7 +429,7 @@ def pixel2emi(pixel, dat, mono=[], calib=[], points=[], w_calib_line=10, plot=Tr
 
     return(emi,calib)
 
-def emi2ET(mono,emission,data,step):
+def emi2ET(mono,emission,data,std,step):
    
     
     Etrans_in = np.zeros(data.shape)
@@ -445,14 +445,20 @@ def emi2ET(mono,emission,data,step):
     E_trans = np.arange(Emin,Emax+step,step)
     
     data_trans = np.zeros([len(mono), len(E_trans)])
+    std_trans = np.zeros([len(mono), len(E_trans)])
     
     for i in np.arange(len(E_trans)-1):
         for ii in np.arange(len(mono)):
-            data_trans[ii,i] = np.nanmean(data[ii, np.logical_and(Etrans_in[ii,:]>E_trans[i],Etrans_in[ii,:]<E_trans[i+1])])
+            mask = np.logical_and(Etrans_in[ii,:] > E_trans[i],
+                      Etrans_in[ii,:] < E_trans[i+1])
+            N = len(data[ii, mask])
+            data_trans[ii,i] = np.nanmean(data[ii, mask])
+            std_trans[ii,i] = np.sqrt(np.sum(std[ii, mask]**2)) / N
             
     data_trans[np.isnan(data_trans)] = 0
+    std_trans[np.isnan(std_trans)] = 0
             
-    return mono, E_trans, data_trans
+    return mono, E_trans, data_trans,std_trans
 
 def calib_emi(mono, dat, end_points_el, w_calib_line=5, plot=True):
     #FIXME
@@ -902,3 +908,39 @@ def bin_svls(data,bin_axis,bins,scantype='fly'):
 
     return bin_centers, binned_dat_sum[1:,:], binned_dat_sumerr[1:,:], binned_dat_mean[1:,:], binned_dat_std[1:,:], bin_counts
 
+
+def get_PFY(rixs,std):
+    PFY     = np.sum(rixs, axis=1)
+    PFY_std = np.sqrt(np.nansum(std**2, axis=1))
+    return PFY, PFY_std
+
+
+def get_CIE(Ecie,width,Einc,data_trans,std_trans):
+    '''
+    Obtain constant incident energy cut from data matrix with incident energy and energy transfer as axes
+    
+    Parameters
+    ----------
+    
+    Ecie : float
+    energy at which to take CIE cut
+
+    width : integer
+    how many pixels left and right of Ecie to include in CIE
+
+    Einc : array
+    incident energy axis
+
+    data_trans : array (mxn)
+    rixs data in a incident energy vs energy transfer matrix
+
+    std_trans : array (mxn)
+    standard deviation of rixs data in a incident energy vs energy transfer matrix
+
+
+    '''
+
+    inds = np.argmin(np.abs(Einc-Ecie))
+    CIE     = np.nansum(data_trans[inds-width:inds+width,:],axis=0)
+    CIE_std = np.sqrt(np.nansum(std_trans[inds-width:inds+width,:]**2, axis=0))
+    return CIE, CIE_std
