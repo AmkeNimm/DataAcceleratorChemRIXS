@@ -61,7 +61,7 @@ class Average():
 
     def __init__(self, runs: list | int, proc_path: str | Path, avg: str, output_path: str | Path,
                 raw_path: str | Path, bgpath: str | Path, fyaml: str | Path, bgyaml: str | Path, 
-                save: bool = True, scantype: str = '',norm: bool = True):
+                save: bool = True, scantype: str = '',norm: bool = True, emi_calib: bool = False):
         
         self.runs = runs
         self.proc_path = proc_path
@@ -85,8 +85,6 @@ class Average():
 
         self.check_reduce()
 
-        self.average
-
         if 'on' in list(self.average.keys())[0]:
             self.laser = True
         elif 'off' in list(self.average.keys())[0]:
@@ -94,7 +92,14 @@ class Average():
         else:
             self.laser = False
 
+        self.average
         self.get_PFYs()
+
+        if emi_calib:
+            self.plot_svls2D_ET()
+
+        if save:
+            self.save_avg()
 
 
     def check_reduce(self):
@@ -111,7 +116,6 @@ class Average():
     
     @cached_property
     def average(self):
-        print(self.proc_path)
         try:
             avg = avg_data_count(self.runs, self.proc_path)
         except:
@@ -137,7 +141,6 @@ class Average():
             emi_config = np.asarray(self.yaml['emi_calib'][i])
             if np.logical_and(np.all(self.runs>emi_config[0]),np.all(self.runs<emi_config[1])):
                 emi_calib = emi_config[2:4]
-                print(emi_calib)
         emi = emi_calib[0]*px+emi_calib[1]
         return emi
 
@@ -167,7 +170,7 @@ class Average():
             ax[2].set_xlabel('inc. energy (eV)')
 
             if calibrated == True:
-                ax[0].set_ylabel('emission (pixel)')
+                ax[0].set_ylabel('emission (eV)')
             else:
                 ax[0].set_ylabel('emission (pixel)')
 
@@ -265,12 +268,12 @@ class Average():
     
     def plot_svls2D_ET(self, savefig=False,transparent=True,figsize=(12,8),scale=1,ETstep=0.2):
         try:
-            emi = self.get_emi()
+            self.average['E_emi'] = self.get_emi()
         except:
             print('emission is not calibrated, cannot plot energy transfer')
         if self.laser:
-            mono_on, E_trans_on, data_trans_on, std_trans_on = emi2ET(self.average['scanvar_on'],emi,self.average['axis_svls_on_mean'],self.average['axis_svls_on_std'],ETstep)
-            mono_off, E_trans_off, data_trans_off, std_trans_off = emi2ET(self.average['scanvar_off'],emi,self.average['axis_svls_off_mean'],self.average['axis_svls_on_std'],ETstep)
+            mono_on, E_trans_on, data_trans_on, std_trans_on = emi2ET(self.average['scanvar_on'],self.average['E_emi'],self.average['axis_svls_on_mean'],self.average['axis_svls_on_std'],ETstep)
+            mono_off, E_trans_off, data_trans_off, std_trans_off = emi2ET(self.average['scanvar_off'],self.average['E_emi'],self.average['axis_svls_off_mean'],self.average['axis_svls_on_std'],ETstep)
 
             self.average['mono_on'] = mono_on
             self.average['mono_off'] = mono_off
@@ -296,7 +299,7 @@ class Average():
             ax[1].set_xlabel('inc. energy (eV)')
             ax[2].set_xlabel('inc. energy (eV)')
 
-            ax[0].set_ylabel('emission (pixel)')
+            ax[0].set_ylabel('energy transfer (eV)')
 
             ax[0].set_title('laser off')
             ax[1].set_title('laser on')
@@ -305,7 +308,7 @@ class Average():
             ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
             ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
         else:
-            mono, E_trans, data_trans, std_trans = emi2ET(self.average['scanvar'],emi,self.average['axis_svls_mean'],.2)
+            mono, E_trans, data_trans, std_trans = emi2ET(self.average['scanvar'],self.average['E_emi'],self.average['axis_svls_mean'],.2)
 
             self.average['mono'] = mono
             self.average['E_trans'] = E_trans
@@ -320,7 +323,7 @@ class Average():
                         vmin=0,vmax=np.nanmax(data_trans)/scale,shading='auto')
             ax.set_xlabel('inc. energy (eV)')
 
-            ax.set_ylabel('emission (pixel)')
+            ax.set_ylabel('energy transfer (eV)')
 
             ax.set_xlim([np.nanmin(self.average['scanvar']),np.nanmax(self.average['scanvar'])])
             ax.set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
@@ -485,14 +488,16 @@ class Average():
                                     width_pixels=width_pixels,
                                     plot_on=plot_on
                                  )
-        self.average['emi'] = calibrated_axis
+        self.average['E_emi'] = calibrated_axis
         return calibrated_axis, (a, b), details
 
     def save_avg(self):
-        print('saving data')
         runs = self.runs
         output = h5py.File(f'./avg/Run{runs[0]:04d}to{runs[-1]:04d}.h5','w')
+        fname = f'./avg/Run{runs[0]:04d}to{runs[-1]:04d}.h5'
+        print(f'saving data in {fname}')
         keys = self.average.keys()
+        print(keys)
 
         for key in keys:
             output.create_dataset(key,dtype='f',data=self.average[key])
