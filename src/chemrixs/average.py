@@ -568,12 +568,127 @@ class Average():
                         dpi=200, bbox_inches='tight')
        
 
-# cutE = 528.5
-# inds = np.argmin(np.abs(np.asarray(OK_mono['mono_off'])-cutE))
-# cutE = 528.3
-# ind_comp = np.argmin(np.abs(np.asarray(dat_o_es['arr_0'])-(cutE-8)))
-# f = 1e4
+    def plot_HERFD(self, E_emi, width = 2, savefig=False,transparent=True,figsize=(12,8),xlim =[]):
+        '''
+        Plot HERFD (Constant emission energy cuts) for given energies
+        
+        Parameters
+        ----------
+        inc_energy : float
+        center energy at which the CIE will be taken
 
-# ax[0].plot(np.asarray(OK_mono['E_trans_off']), np.nansum(np.asarray(OK_mono['data_trans_off'])[inds-2:inds+2,:],axis=0),label='laser off, 522.8eV')
-# ax[1].plot(np.asarray(OK_mono['E_trans_off']), np.nansum(np.asarray(OK_mono['data_trans_on'])[inds-2:inds+2,:],axis=0),label='laser on')
+        width: integer
+        number of pixels 'left and right' of center energy which will be used for CIE sum
 
+        savefig : boolean
+        save figure or not
+
+        transparent : boolean
+        background for saved figure transparent or not
+
+        figsize : array 
+        size of figure
+
+        xlim : array
+        limits of x-axis (energy transfer axis) to be plotted
+
+        ''' #E_emi,width,emi,data,std
+        if self.laser:
+            HERFD_on,HERFD_on_std = get_HERFD(E_emi,width,self.average['E_trans_on'],self.average['axis_svls_on_mean'],self.average['axis_svls_on_std'])
+            HERFD_off,HERFD_off_std = get_HERFD(E_emi,width,self.average['E_trans_off'],self.average['axis_svls_off_mean'],self.average['axis_svls_off_std'])
+            dHERFDerr = 1/2*np.sqrt(HERFD_on_std**2+HERFD_off_std**2)
+            if xlim==[]:
+                xlim = [np.nanmin(self.average['mono_on']),np.nanmax(self.average['mono_on'])]
+            # inds = np.argmin(np.abs(np.asarray(self.average['mono_off'])-inc_energy))
+            # self.average['CIE_off'] = np.nansum(np.asarray(self.average['data_trans_off'])[inds-width:inds+width,:],axis=0)
+            # inds = np.argmin(np.abs(np.asarray(self.average['mono_on'])-inc_energy))
+            # self.average['CIE_on'] = np.nansum(np.asarray(self.average['data_trans_on'])[inds-width:inds+width,:],axis=0)
+            fig,ax=plt.subplots(1,2,sharex=True,figsize=figsize)
+            ax[0].plot(self.average['mono_off'], HERFD_off,label='laser off',color='tab:blue')
+            ax[0].fill_between(self.average['mono_off'], HERFD_off-HERFD_off_std, HERFD_off+HERFD_off_std,color='tab:blue',alpha=0.2)
+            ax[0].plot(self.average['mono_on'], HERFD_on,label='laser on',color='tab:orange')
+            ax[0].fill_between(self.average['mono_off'], HERFD_on-HERFD_on_std, HERFD_on+HERFD_on_std,color='tab:orange',alpha=0.2)
+            ax[0].legend()
+            ax[0].set_xlabel('energy transfer (eV)')
+            ax[0].set_ylabel('intensity (arb. u.)')
+            ax[1].plot(self.average['mono_off'], HERFD_on-HERFD_off,label='laser off',color='tab:blue')
+            ax[1].plot(self.average['mono_off'],np.zeros(len(self.average['mono_off'])),'--k')
+            ax[1].fill_between(self.average['mono_off'], HERFD_on-HERFD_off-dHERFDerr, HERFD_on-HERFD_off+dHERFDerr,color='tab:blue',alpha=0.2)
+            ax[1].set_xlabel('energy transfer (eV)')
+            ax[0].set_xlim(xlim)
+        else:
+            if xlim==[]:
+                xlim = [np.nanmin(self.average['mono']),np.nanmax(self.average['mono'])]
+            inds = np.argmin(np.abs(np.asarray(self.average['E_emi'])-E_emi))
+            self.average['HERFD'] = np.nansum(np.asarray(self.average['axis_svls_mean'])[inds-width:inds+width,:],axis=0)
+            fig,ax=plt.subplots(1,1)
+            ax.plot(self.average['mono'], self.average['HERFD'])
+            ax.set_xlabel('energy transfer (eV)')
+            ax.set_ylabel('intensity (arb. u.)')
+            ax.set_xlim(xlim)
+        if savefig:
+            fig.savefig(f'figs/SVLS_HERFD_{self.runs[0]}_{self.runs[-1]}.png',transparent=transparent,
+                        dpi=200, bbox_inches='tight')
+       
+
+    def plot_CET(self, E_trans, width = 2, savefig=False,transparent=True,figsize=(12,8),xlim =[]):
+        '''
+        Plot CET (Constant energy transfer cuts) for given energies
+        
+        Parameters
+        ----------
+        inc_energy : float
+        center energy at which the CIE will be taken
+
+        width: integer
+        number of pixels 'left and right' of center energy which will be used for CIE sum
+
+        savefig : boolean
+        save figure or not
+
+        transparent : boolean
+        background for saved figure transparent or not
+
+        figsize : array 
+        size of figure
+
+        xlim : array
+        limits of x-axis (energy transfer axis) to be plotted
+
+        ''' #E_emi,width,emi,data,std
+        if self.laser:
+            CET_on,CET_on_std = get_CET(E_trans,width,self.average['E_emi'],self.average['data_trans_on'],self.average['std_trans_on'])
+            CET_off,CET_off_std = get_CET(E_trans,width,self.average['E_emi'],self.average['data_trans_off'],self.average['std_trans_off'])
+            dCETerr = 1/2*np.sqrt(CET_on_std**2+CET_off_std**2)
+            if xlim==[]:
+                xlim = [np.nanmin(self.average['mono_on']),np.nanmax(self.average['mono_on'])]
+            # inds = np.argmin(np.abs(np.asarray(self.average['mono_off'])-inc_energy))
+            # self.average['CIE_off'] = np.nansum(np.asarray(self.average['data_trans_off'])[inds-width:inds+width,:],axis=0)
+            # inds = np.argmin(np.abs(np.asarray(self.average['mono_on'])-inc_energy))
+            # self.average['CIE_on'] = np.nansum(np.asarray(self.average['data_trans_on'])[inds-width:inds+width,:],axis=0)
+            fig,ax=plt.subplots(1,2,sharex=True,figsize=figsize)
+            ax[0].plot(self.average['mono_off'], CET_off,label='laser off',color='tab:blue')
+            ax[0].fill_between(self.average['mono_off'], CET_off-CET_off_std, CET_off+CET_off_std,color='tab:blue',alpha=0.2)
+            ax[0].plot(self.average['mono_on'], CET_on,label='laser on',color='tab:orange')
+            ax[0].fill_between(self.average['mono_off'], CET_on-CET_on_std, CET_on+CET_on_std,color='tab:orange',alpha=0.2)
+            ax[0].legend()
+            ax[0].set_xlabel('energy transfer (eV)')
+            ax[0].set_ylabel('intensity (arb. u.)')
+            ax[1].plot(self.average['mono_off'], CET_on-CET_off,label='laser off',color='tab:blue')
+            ax[1].plot(self.average['mono_off'],np.zeros(len(self.average['mono_off'])),'--k')
+            ax[1].fill_between(self.average['mono_off'], CET_on-CET_off-dCETerr, CET_on-CET_off+dCETerr,color='tab:blue',alpha=0.2)
+            ax[1].set_xlabel('energy transfer (eV)')
+            ax[0].set_xlim(xlim)
+        else:
+            if xlim==[]:
+                xlim = [np.nanmin(self.average['mono']),np.nanmax(self.average['mono'])]
+            inds = np.argmin(np.abs(np.asarray(self.average['E_emi'])-E_trans))
+            self.average['CET'] = np.nansum(np.asarray(self.average['axis_svls_mean'])[inds-width:inds+width,:],axis=0)
+            fig,ax=plt.subplots(1,1)
+            ax.plot(self.average['mono'], self.average['CET'])
+            ax.set_xlabel('energy transfer (eV)')
+            ax.set_ylabel('intensity (arb. u.)')
+            ax.set_xlim(xlim)
+        if savefig:
+            fig.savefig(f'figs/SVLS_CET_{self.runs[0]}_{self.runs[-1]}.png',transparent=transparent,
+                        dpi=200, bbox_inches='tight')

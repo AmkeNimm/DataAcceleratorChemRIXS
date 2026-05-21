@@ -379,7 +379,7 @@ def avg_data_count(runs : list, proc_folder : str = '',proc_path : str = ''):
         if laser:
             counts_on = counts_on + count_on
             counts_off = counts_off + count_off
-            print(counts_off)
+            # print(counts_off)
 
         else:
             counts = counts + count
@@ -944,3 +944,63 @@ def get_CIE(Ecie,width,Einc,data_trans,std_trans):
     CIE     = np.nansum(data_trans[inds-width:inds+width,:],axis=0)
     CIE_std = np.sqrt(np.nansum(std_trans[inds-width:inds+width,:]**2, axis=0))
     return CIE, CIE_std
+
+def get_HERFD(E_emi,width,emi,data,std):
+    '''
+    Obtain constant energy transfer energy cut from data matrix with incident energy and energy transfer as axes
+    
+    Parameters
+    ----------
+    
+    E_emi : float
+    emission energy at which to take HERFD cut
+
+    width : integer
+    how many pixels left and right of Ecie to include in HERFD
+
+    Einc : array
+    incident energy axis
+
+    data : array (mxn)
+    rixs data in a incident energy vs emission energy  matrix
+
+    std : array (mxn)
+    standard deviation of rixs data in a incident energy vs emission energy matrix
+
+
+    '''
+
+    inds = np.argmin(np.abs(emi-E_emi))
+    HERFD     = np.nansum(data[:,inds-width:inds+width],axis=1)
+    HERFD_std = np.sqrt(np.nansum(std[:,inds-width:inds+width]**2, axis=0))
+    return HERFD, HERFD_std
+
+def get_CET(Ecet,width,ET,data_trans,std_trans):
+    '''
+    Obtain constant energy transfer energy cut from data matrix with incident energy and energy transfer as axes
+    
+    Parameters
+    ----------
+    
+    Ecet : float
+    energy at which to take CET cut
+
+    width : integer
+    how many pixels left and right of Ecie to include in CET
+
+    Einc : array
+    incident energy axis
+
+    data_trans : array (mxn)
+    rixs data in a incident energy vs energy transfer matrix
+
+    std_trans : array (mxn)
+    standard deviation of rixs data in a incident energy vs energy transfer matrix
+
+
+    '''
+
+    inds = np.argmin(np.abs(ET-Ecet))
+    CET     = np.nansum(data_trans[:,inds-width:inds+width],axis=1)
+    CET_std = np.sqrt(np.nansum(std_trans[:,inds-width:inds+width]**2, axis=0))
+    return CET, CET_std
