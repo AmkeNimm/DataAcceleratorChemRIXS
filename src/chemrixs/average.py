@@ -219,7 +219,7 @@ class Average():
         
         """
         if self.laser == True:
-            fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
+            fig,ax = plt.subplots(1,2,sharex=True, sharey=True,figsize=figsize)
             ax[0].plot(self.average['scanvar_off'],self.average['PFY_off_mean'],color='tab:blue')
             ax[0].plot(self.average['scanvar_on'],self.average['PFY_on_mean'],color='tab:orange')
             ax[1].plot(self.average['scanvar_on'],self.average['PFY_on_mean']-self.average['PFY_off_mean'],color='tab:blue')
