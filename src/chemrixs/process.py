@@ -227,6 +227,14 @@ class Reduced():
             self.proc['andor_vls']=norm_vls
 
     def proc_andordir(self):
+        background_type = self.data.yaml['int_detectors']['axis_svls']['backgroundtype']
+        offset_roi = self.data.yaml['andor_dir']['offset_roi']
+
+        #PROCESS BG
+        if background_type == 'dark':
+            if self.bg_preproc == False:
+                self.bg.andor_dir = np.nanmean(self.bg.integrating.andor_dir.full_area[:,:],0)
+                andordir_proc = self.data.integrating.andor_dir.full_area-self.bg.andor_dir[np.newaxis,:]
 
         self.proc['andor_dir'] = {}
         self.proc['axis_dir']['on'] = []
@@ -343,7 +351,10 @@ class Reduced():
                     scanvar = getattr(det,'delay')
                 if (np.nansum(onmask)+np.nansum(offmask))==0:
                     if detector == 'axis_svls':
+                        bins=self.data.yaml['bins']
+                        print(f"binning: {bins}")
                         scanvar_bin, tmp_sum, tmp_sumerr, tmp_mean, tmp_std, counts = bin_svls(norm,scanvar,bins=self.data.yaml['bins'],scantype='step')
+                        print(f'binned: {scanvar_bin}')
                     else:
                         scanvar_bin, tmp_sum, tmp_mean, tmp_std, counts = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='step')
                 else:
@@ -377,7 +388,10 @@ class Reduced():
                 if (np.nansum(onmask)+np.nansum(offmask))==0:
                     print('no laser on')
                     if detector == 'axis_svls':
+                        bins=self.data.yaml['bins']
+                        print(f"binning: {bins}")
                         scanvar_bin, tmp_sum, tmp_sumerr, tmp_mean, tmp_std, counts = bin_svls(norm,scanvar,bins=self.data.yaml['bins'],scantype='fly')
+                        print(f'binned: {scanvar_bin}')
                     else:
                         scanvar_bin, tmp_sum, tmp_mean, tmp_std, counts = bin_data(norm,scanvar,bins=self.data.yaml['bins'],scantype='fly')
                 else:

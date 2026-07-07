@@ -308,8 +308,7 @@ class Average():
             ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
             ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
         else:
-            mono, E_trans, data_trans, std_trans = emi2ET(self.average['scanvar'],self.average['E_emi'],self.average['axis_svls_mean'],.2)
-
+            mono, E_trans, data_trans, std_trans = emi2ET(self.average['scanvar'],self.average['E_emi'],self.average['axis_svls_mean'],self.average['axis_svls_std'],ETstep)
             self.average['mono'] = mono
             self.average['E_trans'] = E_trans
             self.average['data_trans'] = data_trans
