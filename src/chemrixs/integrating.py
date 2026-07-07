@@ -75,7 +75,11 @@ class Integrating():
                         chunks=det_spec_dict['chunks']
                     )
                 )
-        # print(sum(self.andor_vls.count_mask))
+        # # print(sum(self.andor_vls.count_mask))
+        # ##### ZY_edits - add timestamp
+        self.top_timestamp = (np.asarray(intgrp['timestamp'])
+                              if self.yaml.get('timestamp_sort', False) and 'timestamp' in intgrp
+                              else None)
 
         self.get_scanvar(intgrp)
         self.countmask()
@@ -137,6 +141,28 @@ class Integrating():
             useDask=det_spec_dict['useDask']
             det=getattr(self,detector)
 
+            #####ZY_edits - 062126 - add timestamp sorting and rolling as options before countmask, to fix potential issues with timestamp misalignment and Andor roll (if not already corrected in raw data)
+            # ----- SORT + ROLL on the FULL sequence, BEFORE the countmask -----
+            if self.yaml.get('timestamp_sort', False) and not useDask:
+                idx = np.argsort(self.top_timestamp)          # full timestamp, NOT [countmask]
+                for at in self.yaml[det_spec_dict['attrdict']]:
+                    setattr(det, at, getattr(det, at)[idx])
+                if (self.scantype == 'delay' or self.scantype == 'delay_fly'):
+                    setattr(det, 'delay', getattr(det, 'delay')[idx])
+                if (self.scantype == 'mono'  or self.scantype == 'mono_fly'):
+                    setattr(det, 'mono',  getattr(det, 'mono')[idx])
+
+                if self.yaml.get('andor_roll', False):
+                    print('hey yes doing the rolling')
+                    setattr(det, 'full_area', np.roll(getattr(det, 'full_area'), 1, axis=0))
+                    for at in self.yaml[det_spec_dict['attrdict']]:
+                        setattr(det, at, getattr(det, at)[1:])
+                    if (self.scantype == 'delay' or self.scantype == 'delay_fly'):
+                        setattr(det, 'delay', getattr(det, 'delay')[1:])
+                    if (self.scantype == 'mono'  or self.scantype == 'mono_fly'):
+                        setattr(det, 'mono',  getattr(det, 'mono')[1:])
+#########end changes
+
             if len(self.yaml['expected_count']) == 0:
                 try:
                     expected_count = st.mode(det.count, keepdims=False)[0]
@@ -144,7 +170,7 @@ class Integrating():
                     expected_count = st.mode(det.count, keepdims=False)[0]
             else:
                 expected_count = self.yaml['expected_count']
-            countmask = (det.count<expected_count+1)&(det.count>expected_count-1)
+            countmask = (det.count<=expected_count+1)&(det.count>=expected_count-1)
             # breakpoint()
             for at in self.yaml[det_spec_dict['attrdict']]:
                 # try:
@@ -182,9 +208,10 @@ class Integrating():
             if len(self.yaml['mono_calib'])==0:
                 #FIXME: just place incoming values here
                 print('mono is not calibrated')
-                for detector in self.yaml['int_detectors']: 
+                for detector in self.yaml['int_detectors']:
                     det = getattr(self,detector)
-                    hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
+                    expected_count = st.mode(det.count, keepdims=False)[0] 
+                    hrencoder = getattr(det,'mono_encoder')/expected_count #getattr(det,'count')
                     setattr(det, 'mono', hrencoder)
             else:
                 for detector in self.yaml['int_detectors']: 
@@ -198,12 +225,14 @@ class Integrating():
                         print('mono is not calibrated for this run')
                         for detector in self.yaml['int_detectors']: 
                             det = getattr(self,detector)
-                            hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
+                            expected_count = st.mode(det.count, keepdims=False)[0] 
+                            hrencoder = getattr(det,'mono_encoder')/expected_count #getattr(det,'count')
                             setattr(det, 'mono', hrencoder)
                     else:
                         #for integrating detectors, the mono encoder value is the sum over all shots
                         if self.scantype=='mono_fly':
-                            hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
+                            expected_count = st.mode(det.count, keepdims=False)[0] 
+                            hrencoder = getattr(det,'mono_encoder')/expected_count #getattr(det,'count')
                             tmp = np.polyval(mono_calib,hrencoder)
                             premirror = get_premirror_pitch(self.epics['MONO_premirror_pitch'])
                             mono = mono_energy(tmp,premirror)
@@ -211,7 +240,8 @@ class Integrating():
                             setattr(det, 'mono', mono)
                         elif self.scantype=='mono':
                             #FIXME: how do I here pull the scanvar 
-                            hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
+                            expected_count = st.mode(det.count, keepdims=False)[0] 
+                            hrencoder = getattr(det,'mono_encoder')/expected_count #getattr(det,'count')
                             tmp = np.polyval(mono_calib,hrencoder)
                             premirror = get_premirror_pitch(self.epics['MONO_premirror_pitch'])
                             mono = mono_energy(tmp,premirror)
@@ -225,10 +255,11 @@ class Integrating():
                 delay_attr = self.yaml['scanvar']['delay']
             elif self.scantype=='delay_fly':
                 delay_attr = self.yaml['scanvar']['delay']
-            #FIXME: where is delay defined
             #np.logical_or(scan_var_name =='lxt',scan_var_name == 'lxt_ttc')
             for detector in self.yaml['int_detectors']: 
                 det = getattr(self,detector)
+
+                expected_count = st.mode(det.count, keepdims=False)[0] 
                 count = getattr(det,'count')
                 # countmask = getattr(det, 'countmask')
                 tmp = intgrp[detector][delay_attr][()]
