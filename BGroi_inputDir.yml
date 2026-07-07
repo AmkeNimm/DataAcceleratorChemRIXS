@@ -1,44 +1,30 @@
 #If BG has been reduced, define path here:
-red_bg_path: ''
+red_bg_path: []
 
 #expected counts per integrating frame
 expected_count: []
 
 #define binning
-bins: ['bin_edges', 
-        [392,402,40]] 
-#        [521,530,40]] 
-        # [392,402,40]] #['bin_width', 0.5e-12] #['Nbins', 15]
+bins: ['Nbins', 10]
 
 #define eventcodes for on and off
-evc: {on: 273, off: 272, any: 274}
+evc: {on: 272, off: 273, any: 274}
 
 #define scan variables
 scanvar: {mono: 'mono_ev', 
         mono_fly: '',
-        delay: 'lxt_ttc',
-        delay_fly: '',
+        delay: '',
         waveplate: 'lm2k2_inj_mp1_att1_wp1'}
 
-mono_calib: [[1,59,-6.68728698e-03,  1.57380907e+05],
-            [60,105,-6.66539114e-03,  1.57380901e+05],
-            [106,126,-6.69253862e-03,  1.57378184e+05],
-            [127,500,-6.66360141e-03,  1.57359964e+05]]
-            
-emi_calib: [[1,59,-0.05067026094209676, 541.8603402209245], #(-0.043408072353699215, 539.8638611428393)
-            [60,105,-0.04413579456975017, 540.09571088171],
-            [106,126,-0.036644986965679, 400.5108021860192],
-            [127,500,-0.0349879, 405.958],]
-
+mono_calib: [[0,500,-3.27082170e-03,  4.80858943e+02]]
 
 #Defining ROIs for the different detectors
-apd:   { channels: [5,7], roi: [[65, 75],[65, 75]],  bg_roi: [0,60]}
-fim0:   { channels: [4,5,6,7], roi: [[65, 75],[65, 75],[65, 75],[65, 75]],  bg_roi: [0,60]}
-fim1:   { channels: [4,5,6,7], roi: [[59, 66],[59, 66],[59, 66],[59, 66]],  bg_roi: [0,60]}
-andor_vls: {roi: [1400,1600,100,150], offset_roi: [1500,1600], threshold: [3,10000], rot_angle: 4, rot_crop: [11:510]} # first 2 values used both 2D and 3D, last two only for 3D
-andor_dir: {roi: [700,1300], offset_roi: [400,500]}  # first 2 values used both 2D and 3D, last two only for 3D
-svls: {roi: [2000,6000], offset_roi: [20,100], threshold: [0,50000]}  # first 2 values used both 2D and 3D, last two only for 3D
-
+apd:   { channels: [7,8], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
+fim0:   { channels: [4,6], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
+fim1:   { channels: [4,6], roi: [[70,80],[70,80]],  bg_roi: [0,40]}
+andor_vls: {roi: [1400,1600,100,150], threshold: [15,500], rot_angle: 4, rot_crop: [11:510]} # first 2 values used both 2D and 3D, last two only for 3D
+andor_dir: {roi: [700,1300,100,150]}  # first 2 values used both 2D and 3D, last two only for 3D
+svls: {roi: [680,720,100,150], offset_roi: []}  # first 2 values used both 2D and 3D, last two only for 3D
 
 #Which detectors to be loaded/processed:
 int_detectors: {
@@ -64,30 +50,31 @@ andor_dir_dict: {
     'count': 'count',
     'full_area': 'full_area',
     'eventcodes': 'timing_sum_eventcodes',
-    'apds': 'det_crix_w8_sum_full_area',
+    #'apds': 'det_crix_w8_sum_full_area',
     'fim_0': 'det_rix_fim0_sum_full_area',
     'fim_1': 'det_rix_fim1_sum_full_area',
-    'mono_encoder': 'mono_hrencoder_sum_value',
+    # 'mono_encoder': 'mono_hrencoder_sum_value',
     'piranha': 'c_piranha_sum_full_area'}
 andor_vls_dict: {
     'count': 'count',
     'full_area': 'full_area',
     'eventcodes': 'timing_sum_eventcodes',
-    'apds': 'det_crix_w8_sum_full_area',
+    #'apds': 'det_crix_w8_sum_full_area',
     'fim_0': 'det_rix_fim0_sum_full_area',
-    'fim_1': 'det_rix_fim1_sum_full_area',
-    'mono_encoder': 'mono_hrencoder_sum_value',
-    'piranha': 'c_piranha_sum_full_area'}
+    'fim_1': 'det_rix_fim1_sum_full_area'}
+    # 'mono_encoder': 'mono_hrencoder_sum_value'}
+    # ,
+    # 'piranha': 'c_piranha_sum_full_area'}
 axis_svls_dict: {
     'count': 'count',
-    'full_area': 'droplet_dense_curve_corr_pj_ax_1_data', #'curve_corr_pj_ax_1_data', # 'curve_corr_corrected_image', #'
+    'full_area': 'droplet_dense_curve_corr_pj_ax_1_data', #'curve_corr_pj_ax_1_data', #'curve_corr_corrected_image', #
     'eventcodes': 'timing_sum_eventcodes',
     'apds': 'det_crix_w8_sum_full_area',
     'fim_0': 'det_rix_fim0_sum_full_area',
-    'fim_1': 'det_rix_fim1_sum_full_area',
-    'mono_encoder': 'mono_hrencoder_sum_value',
-    'piranha': 'c_piranha_sum_full_area'}
-    
+    'fim_1': 'det_rix_fim1_sum_full_area'}
+    # 'mono_encoder': 'mono_hrencoder_sum_value'}
+    # ,
+    # 'piranha': 'c_piranha_sum_full_area'}
 piranha_dict: {'full_area': 'full_area'}
 apds_dict: {'full_area': 'full_area',
              'preproc': 'wfintegrate'}
@@ -102,14 +89,11 @@ timestamp_dict: {'timestamp': 'timestamp'}
 timing_dict: {'evtcodes': 'eventcodes',
                'timestamp': 'timestamp'}
 
-
-#FIXME: Add some check that channels cannpt be in here when they're not loaded
 channels_to_integrate: {
     'fim_0': 'fim0',
     'fim_1': 'fim1',
     'apds': 'apd'
 }
-
 
 epics: {key: 'epics_archiver',
         attr: {'MONO_premirror_pitch': 'SP1K1_MONO_MMS_M_PI.RBV',
