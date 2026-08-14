@@ -46,3 +46,4 @@ Utils
 
 .. automodule:: chemrixs.utils
    :members:
+   :undoc-members:
