@@ -41,3 +41,8 @@ Detector
 .. autoclass:: chemrixs.Detector
    :members:
 
+Utils
+=====
+
+.. automodule:: chemrixs.utils
+   :members:
