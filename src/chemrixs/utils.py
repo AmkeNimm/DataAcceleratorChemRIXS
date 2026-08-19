@@ -238,7 +238,7 @@ def bin_data(data,bin_axis,bins,scantype='fly'):
         if not sum((inds==i))==0:
             binned_dat_sum[i,:]  = np.nansum(data[inds==i],0)#/bin_counts[i]
             binned_dat_mean[i,:] = np.nanmean(data[inds==i],0)
-            binned_dat_std[i,:]  = np.nanstd(data[inds==i],0)
+            binned_dat_std[i,:]  = np.nanstd(data[inds==i],0)/np.sqrt(np.len(data[inds==i]))
 
 
     return bin_centers, binned_dat_sum[1:,:], binned_dat_mean[1:,:], binned_dat_std[1:,:], bin_counts
